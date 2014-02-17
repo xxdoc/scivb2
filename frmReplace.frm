@@ -242,7 +242,7 @@ Public Sub cmdFindAll_Click()
     On Error Resume Next
     Dim txt As String
     Dim line As Long
-    Dim curIndex As Long
+    Dim editorText As String
     
     If Me.Width < 10440 Then Me.Width = 10440
     List1.Clear
@@ -261,33 +261,48 @@ Public Sub cmdFindAll_Click()
         compare = vbTextCompare
     End If
     
-    curIndex = SCI.SelStart
     lastIndex = 1
     lastsearch = f
     X = 1
     
     If Len(f) = 0 Then Exit Sub
     
+    LockWindowUpdate SCI.sciHWND
+    editorText = SCI.Text
     Do While X > 0
     
-        X = InStr(lastIndex, SCI.Text, lastsearch, compare)
+        X = InStr(lastIndex, editorText, lastsearch, compare)
     
-        If X + 2 = lastIndex Or X < 1 Or X > Len(SCI.Text) Then
+        If X + 2 = lastIndex Or X < 1 Or X >= Len(editorText) Then
             Exit Do
         Else
             lastIndex = X + 2
             SCI.SelStart = X - 1
             SCI.SelLength = Len(lastsearch)
             line = SCI.CurrentLine
-            If line = 5 Then Stop
             txt = Replace(Trim(SCI.GetLineText(line)), vbTab, Empty)
             txt = Replace(txt, vbCrLf, Empty)
             List1.AddItem (line + 1) & ": " & txt
+            
+            ' Save some time here.  Since were marking all instances if the same
+            ' string is found twice in the same line we don't need to know that.
+            ' So once we find it in a line and mark it automaticly jump to the next
+            ' line
+
+            SCI.DirectSCI.GotoLine line + 1
+            lastIndex = SCI.SelStart
+            
         End If
         
     Loop
     
-    SCI.SelStart = curIndex
+    LockWindowUpdate 0
+    
+    If List1.ListCount >= 0 Then
+        List1.selected(0) = True
+        List1_Click
+    End If
+    
     Me.Caption = List1.ListCount & " items found!"
     
 End Sub

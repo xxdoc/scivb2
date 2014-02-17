@@ -3,8 +3,8 @@
   - removed dead code and costly features, compiled size reduced by 400k
   - combined highlighter and scivb user controls into one visual usercontrol for simplicity
   - new find/replace form with hexchar and find all support
-  - fixed ide error Window isnt subclassed
-  - think I fixed sporatic loss of arrow key function bug
+  - fixed ide "Window handle isnt subclassed" error 
+  - fixed sporatic loss of arrow key function bug (i think!)
   - tweaked java highlighter bin file, need to make editor for them..
   - note: usercontrol does not save ide design time settings, set them at runtime for now
 

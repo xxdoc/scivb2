@@ -39,59 +39,51 @@ Public Type Highlighter
 End Type
 
 Public HCount As Integer
-
-Public Highlighters() As Highlighter ' Make it publicly exposed so the app can
-                                     ' read off name's for menu's or such
+Public Highlighters() As Highlighter ' Make it publicly exposed so the app can read off name's for menu's or such
 Private CurrentHighlighter As Integer
-
 Private sBuffer As String
 Private Const ciIncriment As Integer = 15000
 Private lOffset As Long
 
 Public Sub ReInit()
-sBuffer = ""
-lOffset = 0
+    sBuffer = ""
+    lOffset = 0
 End Sub
 
 Public Function GetString() As String
-GetString = Left$(sBuffer, lOffset)
-sBuffer = ""  'reset
-lOffset = 0
-
+    GetString = Left$(sBuffer, lOffset)
+    sBuffer = ""  'reset
+    lOffset = 0
 End Function
 
 'This function lets you assign a string to the concating buffer.
 Public Sub SetString(ByRef Source As String)
-sBuffer = Source & String$(ciIncriment, 0)
+    sBuffer = Source & String$(ciIncriment, 0)
 End Sub
 
 Public Sub SConcat(ByRef Source As String)
-Dim lBufferLen As Long
-lBufferLen = Len(Source)
-'Allocate more space in buffer if needed
-If (lOffset + lBufferLen) >= Len(sBuffer) Then
-   If lBufferLen > lOffset Then
-      sBuffer = sBuffer & String$(lBufferLen, 0)
-   Else
-      sBuffer = sBuffer & String$(ciIncriment, 0)
-   End If
-End If
-Mid$(sBuffer, lOffset + 1, lBufferLen) = Source
-lOffset = lOffset + lBufferLen
+    Dim lBufferLen As Long
+    lBufferLen = Len(Source)
+    'Allocate more space in buffer if needed
+    If (lOffset + lBufferLen) >= Len(sBuffer) Then
+       If lBufferLen > lOffset Then
+          sBuffer = sBuffer & String$(lBufferLen, 0)
+       Else
+          sBuffer = sBuffer & String$(ciIncriment, 0)
+       End If
+    End If
+    Mid$(sBuffer, lOffset + 1, lBufferLen) = Source
+    lOffset = lOffset + lBufferLen
 End Sub
 
 Private Function FindHighlighter(strLangName As String) As Integer
   Dim i As Integer
-  Dim L As Long
-  L = GetTickCount
-   For i = 0 To hlCount - 1 ' UBound(Highlighters) - 1
-    
-    'If Len(strLangName) = Len(Highlighters(i)) Then
+
+  For i = 0 To hlCount - 1 ' UBound(Highlighters) - 1
       If UCase(Highlighters(i).strName) = UCase(strLangName) Then
-        FindHighlighter = i
-        Exit Function
+            FindHighlighter = i
+            Exit Function
       End If
-'    End If
   Next i
     
 End Function
@@ -191,17 +183,22 @@ Public Function LoadHighlighter(strFile As String)
 End Function
 
 Public Sub LoadDirectory(strDir As String)
+  
   Dim str As String, i As Long
+  
   hlCount = 0
   If Right(strDir, 1) <> "\" Then strDir = strDir & "\"
   str = Dir(strDir & "\*bin")
+  
   Erase Highlighters
+  
   HCount = 0
   Do Until str = ""
     hlCount = hlCount + 1
     LoadHighlighter strDir & "\" & str
     str = Dir
   Loop
+  
 End Sub
 
 Public Function GetExtension(sFileName As String) As String
@@ -215,15 +212,19 @@ Public Function GetExtension(sFileName As String) As String
 End Function
 
 Public Function SetHighlighterBasedOnExtension(file As String, Optional lMarginBack As Long, Optional lMarginFore As Long) As String
-  Dim Extension As String, ua() As String, ClrExt As String, X As Long
-  Extension = LCase$(Mid$(file, InStrRev(file, ".") + 1, Len(file) - InStrRev(file, ".")))
-  Extension = "." & Extension
-  For X = 0 To hlCount - 1 'UBound(Highlighters)
-    If InStr(1, Highlighters(X).strFilter, Extension) Then
-      SetHighlighterBasedOnExtension = Highlighters(X).strName
-      Exit For
-    End If
-  Next X
+    
+    Dim Extension As String, ua() As String, ClrExt As String, X As Long
+    
+    Extension = LCase$(Mid$(file, InStrRev(file, ".") + 1, Len(file) - InStrRev(file, ".")))
+    Extension = "." & Extension
+    
+    For X = 0 To hlCount - 1 'UBound(Highlighters)
+      If InStr(1, Highlighters(X).strFilter, Extension) Then
+          SetHighlighterBasedOnExtension = Highlighters(X).strName
+          Exit For
+      End If
+    Next X
+    
 End Function
 
 Public Function ExportToHTML2(strFile As String, scisimple As scisimple)
@@ -388,42 +389,38 @@ Public Function ExportToHTML2(strFile As String, scisimple As scisimple)
   strOutput = ""
 End Function
 
-
+'Convert decimal colour to hex
 Public Function DectoHex(lngColour As Long) As String
-
-    '     *********
     Dim strColour As String
-    'Convert decimal colour to hex
+    
     strColour = Hex(lngColour)
+    
     'Add leading zero's
-
     Do While Len(strColour) < 6
         strColour = "0" & strColour
     Loop
 
     'Reverse the bgr string pairs to rgb
     DectoHex = "#" & Right$(strColour, 2) & _
-    Mid$(strColour, 3, 2) & _
-    Left$(strColour, 2)
+                     Mid$(strColour, 3, 2) & _
+                     Left$(strColour, 2)
+                        
 End Function
 
 Function AddToString(St As String, ToAdd As String, Optional NumTimes As Long = 1) As String
 
     Dim LC As Long, StrLoc As Long
-    AddToString = String$((Len(ToAdd) * NumTimes) + Len(St), 0) 'For CopyMemory() to work, the string must be padded With nulls to the desired size
-    CopyMemory ByVal StrPtr(AddToString), ByVal StrPtr(St), LenB(St) 'Copy the original string to the return code
-    StrLoc = StrPtr(AddToString) + LenB(St) 'Memory Location = Location of return code + size of original string
-    'We use LenB() because strings are actua
-    '     lly twice as long as Len() says when sto
-    '     red in memory
-
+    
+    AddToString = String$((Len(ToAdd) * NumTimes) + Len(St), 0)         'For CopyMemory() to work, the string must be padded With nulls to the desired size
+    CopyMemory ByVal StrPtr(AddToString), ByVal StrPtr(St), LenB(St)    'Copy the original string to the return code
+    StrLoc = StrPtr(AddToString) + LenB(St)                             'Memory Location = Location of return code + size of original string
+    
+    'We use LenB() because strings are actually twice as long as Len() says when stored in memory
     For LC = 1 To NumTimes
         CopyMemory ByVal StrLoc, ByVal StrPtr(ToAdd), LenB(ToAdd) 'Copy the source String to the return code
-        StrLoc = StrLoc + LenB(ToAdd) 'Add the size of the String to the pointer
-
-
-        DoEvents 'Comment this out If you don't plan To use huge repeat values, you'll Get a nice speed boost
-        Next LC
+        StrLoc = StrLoc + LenB(ToAdd)                             'Add the size of the String to the pointer
+        DoEvents                                                  'Comment this out If you don't plan To use huge repeat values, you'll Get a nice speed boost
+    Next LC
 
  End Function
 

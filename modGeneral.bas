@@ -378,72 +378,43 @@ Function MatchBrace(ch As String) As String
   If ch = "{" Then MatchBrace = "}"
 End Function
 
-Function APIReadFile(strFilePath As String, Optional bolAsString = True) As String
-  On Error Resume Next
-  Dim arrFileMain() As Byte
-  Dim arrFileBuffer() As Byte
-  Dim lngAllBytes As Long
-  Dim lngSize As Long, lngRet As Long
-  Dim i As Long
-  Dim lngFileHandle As Long
-  Dim ofData As OFSTRUCT
-  Const lngMaxSizeForOneStep = 1000000
-    'Prepare Arrays ==========================================================
-    ReDim arrFileMain(0)
-    ReDim arrFileBuffer(lngMaxSizeForOneStep)
-
-    'Open the two files
-    lngFileHandle = OpenFile(strFilePath, ofData, OF_READ)
-
-    'Get the file size
-    lngSize = GetFileSize(lngFileHandle, 0)
-    Do While Not UBound(arrFileMain) = lngSize - 1
-        If lngSize = 0 Then Exit Function
-
-        'Redim Array to fit a smaller file
-        lngAllBytes = UBound(arrFileMain)
-        If lngSize - lngAllBytes < lngMaxSizeForOneStep Then ReDim arrFileBuffer(lngSize - lngAllBytes - 2)
-
-        'Read from the file
-        ReadFile lngFileHandle, arrFileBuffer(0), UBound(arrFileBuffer) + 1, lngRet, ByVal 0&
-
-        'Calculate Buffer's position in Main Array
-        If lngAllBytes > 0 Then lngAllBytes = lngAllBytes + 1
-
-        'Make place for the Buffer in the Main Array
-        ReDim Preserve arrFileMain(lngAllBytes + UBound(arrFileBuffer))
-
-        'Put Buffer at end of Main Array
-        MemCopy arrFileMain(lngAllBytes), arrFileBuffer(0), UBound(arrFileBuffer) + 1
-
-        DoEvents
-
-    Loop
-
-    'Close the file
-    CloseHandle lngFileHandle
-    ReDim arrFileBuffer(0)
-
-    'Convert Main Array to String
-    APIReadFile = StrConv(arrFileMain(), vbUnicode, LANG_US)
+Function ReadFile(filename) As String 'this one should be binary safe...
+  On Error GoTo hell
+  Dim f As Long, b() As Byte
+  f = FreeFile
+  Open filename For Binary As #f
+  ReDim b(LOF(f) - 1)
+  Get f, , b()
+  Close #f
+  ReadFile = StrConv(b(), vbUnicode, LANG_US)
+  Exit Function
+hell:   ReadFile = ""
 End Function
 
-Sub WriteToFile(strFile As String, strdata As String)
-  On Error GoTo eHandle
-  Dim i As Long
-  Dim L As Long
-  Dim hFile As Long
-  Dim bByte() As Byte
-  Str2Byte strdata, bByte()
-  L = UBound(bByte()) - 1
-  hFile = CreateFile(strFile, GENERIC_WRITE, FILE_SHARE_READ Or FILE_SHARE_WRITE, ByVal 0&, CREATE_ALWAYS, 0, 0&)
-  WriteFile hFile, bByte(0), L, 0, ByVal 0&
-  CloseHandle hFile
-  Exit Sub
-eHandle:
-  ' Just in case anything happens let's close the handle
-  CloseHandle hFile
-End Sub
+Function writeFile(path As String, it As String) As Boolean   'this one should be binary safe...
+    On Error GoTo hell
+    Dim b() As Byte, f As Long
+    If FileExists(path) Then Kill path
+    f = FreeFile
+    b() = StrConv(it, vbFromUnicode, LANG_US)
+    Open path For Binary As #f
+    Put f, , b()
+    Close f
+    writeFile = True
+    Exit Function
+hell: writeFile = False
+End Function
+
+Function GetBaseName(path) As String
+    Dim tmp() As String, ub As String
+    tmp = Split(path, "\")
+    ub = tmp(UBound(tmp))
+    If InStr(1, ub, ".") > 0 Then
+       GetBaseName = Mid(ub, 1, InStrRev(ub, ".") - 1)
+    Else
+       GetBaseName = ub
+    End If
+End Function
 
 Sub Str2Byte(sInput As String, bOutput() As Byte) '<--probably should convert to strconv(lang_US) -dzzie
   ' This function is used to convert strings to bytes

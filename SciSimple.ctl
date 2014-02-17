@@ -14,16 +14,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
-'NOTES: ctrl-g seems to insert bel char only if gotoline code is called??
-'       only dependancy on commctrl ocx is frmReplace findall feature..I always use it anyway so...
-'       markers and bookmarks are commented out right now..macros support was removed from ocx
-'
-'       allot of code length in this form has to do with tracking IDE design time settings
-'         like caretwidth..its accessible from directsci simply, the ocx would be friendlier without this stuff
-'         but to remove them all would be allot of work..
-'         there are also a bunch of settings that do nothing directly, and the user would have to call setoptions after to trigger like tabwidth
-'         these all add noise and bulk to easy use of control..but is it worth the labor and debugging to shave it..
-
+'NOTES:
 ' could it be that the forward focus = false was the cause of my arrow key problems??
 
 Option Explicit
@@ -40,13 +31,13 @@ Event KeyDown(KeyCode As Long, Shift As Long)
 Event KeyUp(KeyCode As Long, Shift As Long)
 Event MouseDown(Button As Integer, Shift As Integer, X As Long, Y As Long)
 Event MouseUp(Button As Integer, Shift As Integer, X As Long, Y As Long)
-Event key(ch As Long, modifiers As Long)    'Key was pressed
-Event DoubleClick()                         'Double clicked Scintilla
-Event OnModified(Position As Long, modificationType As Long)  'Modified
-Event PosChanged(Position As Long)                          'Changed Position (Update Status)
+Event key(ch As Long, modifiers As Long)
+Event DoubleClick()
+Event OnModified(Position As Long, modificationType As Long)
+Event PosChanged(Position As Long)
 Event UserListSelection(listType As Long, Text As String)   'Selected AutoComplete
-Event CallTipClick(Position As Long)                         'Clicked a calltip
-Event AutoCSelection(Text As String)                      'Auto Completed selected
+Event CallTipClick(Position As Long)                        'Clicked a calltip
+Event AutoCSelection(Text As String)                        'Auto Completed selected
 
 '=========[ scisimple private values ]====================
 Private SCI As Long           ' hwnd for the Scintilla window
@@ -64,7 +55,7 @@ Public Enum SC_CODETYPE
   SC_CP_UTF8 = 65001        ' Unicode support.
 End Enum
 
-Private lSCI As Long
+Private hSciLexer As Long
 Private m_hMod As Long
 Private chStore As Long
 
@@ -86,7 +77,6 @@ Public Enum edge
   EdgeBackground = 2
 End Enum
 
-' Folding Style Enum (Folding can draw a box, arrow, circle, or Plus/Minus)
 Public Enum FoldingStyle
   FoldMarkerArrow = 0
   foldMarkerBox = 1
@@ -94,7 +84,6 @@ Public Enum FoldingStyle
   FoldMarkerPlusMinus = 3
 End Enum
 
-'Property Variables:
 Dim m_CodePage As SC_CODETYPE
 Dim m_SelStart As Long
 Dim m_SelEnd As Long
@@ -170,6 +159,10 @@ Private bRepAll As Boolean
 
 
  '=========================[ subclassing, initilization, and usercontrol stuff ]====================================
+
+Property Get sciHWND() As Long
+    sciHWND = SCI
+End Property
 
 Private Sub Attach(hWndA As Long)
   Set SC = New cSubclass
@@ -533,7 +526,7 @@ Private Sub UserControl_Terminate()
     'Stop all subclassing
     'Detach
     'FreeLibrary m_hMod
-    'FreeLibrary lSCI
+    'FreeLibrary hSciLexer
 Catch:
 End Sub
 
@@ -553,14 +546,8 @@ Private Sub UserControl_Initialize()
         InitScintilla UserControl.hwnd
         
         Dim f As String
-        f = App.path & "\highlighters"
-    
-        If FolderExists(f) Then
-            LoadHighlightersDirectory f
-            SetHighlighter "java"
-        End If
-       
-       
+        f = App.path & "\java.hilighter"
+        If FileExists(f) Then LoadHighlighter f
 
 End Sub
 
@@ -568,7 +555,18 @@ Public Function InitScintilla(hWndA As Long) As Boolean
     On Error GoTo errHandler
     
     InitScintilla = True
-    lSCI = LoadLibrary("SciLexer.DLL")   'Load SciLexer.dll from app.path or windows directory.. we could drop it from res if returns 0
+    hSciLexer = LoadLibrary("SciLexer.DLL")   'Load SciLexer.dll from app.path or windows directory.. we could drop it from res if returns 0
+    
+    If hSciLexer = 0 Then
+        hSciLexer = LoadLibrary(App.path & "\..\SciLexer.DLL") 'lets try our parent directory as well..
+    End If
+    
+    If hSciLexer = 0 Then
+      RaiseEvent OnError("scisimple", "Failed to load SciLexer.DLL" & vbCrLf & vbCrLf & _
+                       "Please verify that SciLexer.dll is in the program" & vbCrLf & "directory or the windows system32 directory")
+      InitScintilla = False
+      Exit Function
+    End If
     
     Set DirectSCI = New cDirectSCI  ' Setup the directsci class
     SCI = CreateWindowEx(WS_EX_CLIENTEDGE, "Scintilla", "Scint.ocx", WS_CHILD Or WS_VISIBLE, 0, 0, 200, 200, hWndA, 0, App.hInstance, 0)
@@ -593,7 +591,7 @@ Public Function InitScintilla(hWndA As Long) As Boolean
     
     Exit Function
 errHandler:
-    RaiseEvent OnError(Err.Number, Err.Description)
+    RaiseEvent OnError(Err.Number, "Error in InitScintilla: " & Err.Description)
 End Function
 
 
@@ -682,13 +680,16 @@ Public Property Let CurrentHighlighter(New_CurrentHighlighter As String)
 End Property
 
 Public Sub SetHighlighter(HighlighterName As String)
-  If hlCount = 0 Then Exit Sub
+  If HCount = 0 Then Exit Sub
   SetHighlighters Me, HighlighterName, m_MarginBack, m_MarginFore
 End Sub
 
-Public Sub LoadHighlighter(filePath As String)
+Public Sub LoadHighlighter(filePath As String, Optional andSetActive As Boolean = True)
   On Error Resume Next
+  Dim baseName As String
+  baseName = GetBaseName(filePath)
   ModHighlighter.LoadHighlighter filePath
+  If andSetActive Then SetHighlighter baseName
 End Sub
 
 Public Sub LoadHighlightersDirectory(dirPath As String)
@@ -1048,8 +1049,8 @@ Public Property Let ReadOnly(ByVal New_ReadOnly As Boolean)
     DirectSCI.SetReadOnly m_ReadOnly
 End Property
 
-Public Property Get Modified() As Boolean   'This is a read only property.  It allows you to get the modified status of the Scintilla window.
-    Modified = DirectSCI.GetModify
+Public Property Get isDirty() As Boolean   'This is a read only property.  It allows you to get the modified status of the Scintilla window.
+    isDirty = DirectSCI.GetModify
 End Property
 
 Public Property Get ShowFlags() As Boolean  'If this is true the second gutter will be displayed and Flags/Bookmarks will be displayed.
@@ -1179,7 +1180,7 @@ Public Function LoadAPIFile(strFile As String)
   Erase APIStrings  'Clear the old array
   i = 0
   
-  APIStrings = Split(APIReadFile(strFile), vbCr)
+  APIStrings = Split(ReadFile(strFile), vbCr)
   For i = 0 To UBound(APIStrings) - 1
         APIStrings(i) = Replace(APIStrings(i), Chr(13), "")
         APIStrings(i) = Replace(APIStrings(i), Chr(10), "")
@@ -1260,27 +1261,37 @@ line = GetLineText(GetCurrentLine())
 
   End Function
 
-Public Sub SaveToFile(strFile As String)
+Public Function SaveFile(strFile As String) As Boolean
+  On Error GoTo hell
   Dim str As String
   ConvertEOLMode
   str = DirectSCI.GetText
-  WriteToFile strFile, str
-  ' Remove the modified flag from scintilla
-  DirectSCI.SetSavePoint
+  writeFile strFile, str
+  DirectSCI.SetSavePoint ' Remove the modified flag from scintilla
   If m_ClearUndoAfterSave Then ClearUndoBuffer
-End Sub
+  SaveFile = True
+  Exit Function
+hell: SaveFile = False
+End Function
 
-Public Sub LoadFile(strFile As String)
+Public Function LoadFile(strFile As String) As Boolean
   Dim str As String
-  If Not FileExists(strFile) Then Exit Sub  'We don't want to have an error if the file doesn't exist.
-  str = APIReadFile(strFile)
+  On Error GoTo hell
+  
+  If Not FileExists(strFile) Then Exit Function
+  
+  str = ReadFile(strFile)
   DirectSCI.SetText str
   ClearUndoBuffer
   DirectSCI.ConvertEOLs DirectSCI.GetEOLMode
   DirectSCI.SetFocus
   DirectSCI.GotoPos 0
   DirectSCI.SetSavePoint
-End Sub
+  LoadFile = True
+  
+  Exit Function
+hell: LoadFile = False
+End Function
 
 
 
@@ -1635,167 +1646,192 @@ End Sub
 
 
 Public Sub MarkAll(strFind As String)
-  Dim X As Long
-  Dim g As Boolean
-  Dim bFind As Long
-  X = DirectSCI.GetCurPos
-  DirectSCI.SetSel 0, 0
-  Call SendEditor(SCI_SETTARGETSTART, 0)
-  Call SendEditor(SCI_SETTARGETEND, DirectSCI.GetTextLength)
-  bFind = DirectSCI.SearchInTarget(Len(strFind), strFind)
-  'bFind = FindText(strFind, False, False, False, False, False, False, False)
-  g = True
-  Do While bFind > 0
-
-    ' Save some time here.  Since were marking all instances if the same
-    ' string is found twice in the same line we don't need to know that.
-    ' So once we find it in a line and mark it automaticly jump to the next
-    ' line
-
-    DirectSCI.GotoPos bFind
-    MarkerSet GetCurrentLine, 2
-    DirectSCI.GotoLine GetCurrentLine + 1
-    Call SendEditor(SCI_SETTARGETSTART, DirectSCI.GetCurPos)
-    Call SendEditor(SCI_SETTARGETEND, DirectSCI.GetTextLength)
-    bFind = DirectSCI.SearchInTarget(Len(strFind), strFind)
-  Loop
-  DirectSCI.SetSel X, X
+      Dim X As Long
+      Dim g As Boolean
+      Dim bFind As Long
+      
+      X = DirectSCI.GetCurPos
+      DirectSCI.SetSel 0, 0
+      Call SendEditor(SCI_SETTARGETSTART, 0)
+      Call SendEditor(SCI_SETTARGETEND, DirectSCI.GetTextLength)
+      bFind = DirectSCI.SearchInTarget(Len(strFind), strFind)
+      g = True
+      
+      Do While bFind > 0
+        
+            ' Save some time here.  Since were marking all instances if the same
+            ' string is found twice in the same line we don't need to know that.
+            ' So once we find it in a line and mark it automaticly jump to the next
+            ' line
+        
+            DirectSCI.GotoPos bFind
+            MarkerSet GetCurrentLine, 2
+            DirectSCI.GotoLine GetCurrentLine + 1
+            Call SendEditor(SCI_SETTARGETSTART, DirectSCI.GetCurPos)
+            Call SendEditor(SCI_SETTARGETEND, DirectSCI.GetTextLength)
+            bFind = DirectSCI.SearchInTarget(Len(strFind), strFind)
+      Loop
+      
+      DirectSCI.SetSel X, X
 End Sub
 
 '================================[ /markers ] ==============================
 
 '================================[ find/replace stuff ] ==============================
 Public Function ReplaceText(strSearchFor As String, strReplaceWith As String, Optional ReplaceAll As Boolean = False, Optional CaseSensative As Boolean = False, Optional WordStart As Boolean = False, Optional WholeWord As Boolean = False, Optional RegExp As Boolean = False) As Boolean
-  bRepLng = True
-  If FindText(strSearchFor, False, False, True, CaseSensative, WordStart, WholeWord) = True Then
-    DirectSCI.ReplaceSel strReplaceWith
-    If ReplaceAll Then
-      bRepAll = True
-      Do Until FindText(strSearchFor, False, False, True, CaseSensative, WordStart, WholeWord) = False
-        DirectSCI.ReplaceSel strReplaceWith
-      Loop
-      bRepAll = False
+    bRepLng = True
+    
+    If FindText(strSearchFor, False, False, True, CaseSensative, WordStart, WholeWord) = True Then
+      DirectSCI.ReplaceSel strReplaceWith
+      If ReplaceAll Then
+            bRepAll = True
+            Do Until FindText(strSearchFor, False, False, True, CaseSensative, WordStart, WholeWord) = False
+                 DirectSCI.ReplaceSel strReplaceWith
+            Loop
+            bRepAll = False
+      End If
     End If
-  End If
-  bRepLng = False
+    
+    bRepLng = False
 End Function
 
 Public Function ReplaceAll(strSearchFor As String, strReplaceWith As String, Optional CaseSensative As Boolean = False, Optional WordStart As Boolean = False, Optional WholeWord As Boolean = False, Optional RegExp As Boolean = False) As Long
-  ReplaceAll = 0
-  Dim lval As Long
-  Dim lenSearch As Long, lenReplace As Long
-  Dim Find As Long
-  If strSearchFor = "" Then Exit Function
-  lval = 0
-  If CaseSensative Then
-    lval = lval Or SCFIND_MATCHCASE
-  End If
-  If WordStart Then
-    lval = lval Or SCFIND_WORDSTART
-  End If
-  If WholeWord Then
-    lval = lval Or SCFIND_WHOLEWORD
-  End If
-  If RegExp Then
-    lval = lval Or SCFIND_REGEXP
-  End If
-  Dim targetstart As Long, targetend As Long, pos As Long, docLen As Long
-  targetstart = 0
-  docLen = DirectSCI.GetTextLength
-  lenSearch = Len(strSearchFor)
-  lenReplace = Len(strReplaceWith)
-
-  targetend = docLen
-  Call SendEditor(SCI_SETSEARCHFLAGS, lval)
-  Call SendEditor(SCI_SETTARGETSTART, targetstart)
-  Call SendEditor(SCI_SETTARGETEND, targetend)
-  Find = SendMessageString(SCI, SCI_SEARCHINTARGET, lenSearch, strSearchFor)
-  Do Until Find = -1
-    targetstart = SendMessage(SCI, SCI_GETTARGETSTART, CLng(0), CLng(0))
-    targetend = SendMessage(SCI, SCI_GETTARGETEND, CLng(0), CLng(0))
-
-    DirectSCI.ReplaceTarget lenReplace, strReplaceWith
-    targetstart = targetstart + lenReplace
-    targetend = docLen
-    ReplaceAll = ReplaceAll + 1
-    Call SendEditor(SCI_SETTARGETSTART, targetstart)
-    Call SendEditor(SCI_SETTARGETEND, targetend)
-    Find = SendMessageString(SCI, SCI_SEARCHINTARGET, lenSearch, strSearchFor)
-  Loop
+      ReplaceAll = 0
+      Dim lval As Long
+      Dim lenSearch As Long, lenReplace As Long
+      Dim Find As Long
+      
+      If strSearchFor = "" Then Exit Function
+      
+      lval = 0
+      If CaseSensative Then
+          lval = lval Or SCFIND_MATCHCASE
+      End If
+      
+      If WordStart Then
+          lval = lval Or SCFIND_WORDSTART
+      End If
+      
+      If WholeWord Then
+          lval = lval Or SCFIND_WHOLEWORD
+      End If
+      
+      If RegExp Then
+          lval = lval Or SCFIND_REGEXP
+      End If
+      
+      Dim targetstart As Long, targetend As Long, pos As Long, docLen As Long
+      targetstart = 0
+      docLen = DirectSCI.GetTextLength
+      lenSearch = Len(strSearchFor)
+      lenReplace = Len(strReplaceWith)
+    
+      targetend = docLen
+      Call SendEditor(SCI_SETSEARCHFLAGS, lval)
+      Call SendEditor(SCI_SETTARGETSTART, targetstart)
+      Call SendEditor(SCI_SETTARGETEND, targetend)
+      Find = SendMessageString(SCI, SCI_SEARCHINTARGET, lenSearch, strSearchFor)
+      
+      Do Until Find = -1
+            targetstart = SendMessage(SCI, SCI_GETTARGETSTART, CLng(0), CLng(0))
+            targetend = SendMessage(SCI, SCI_GETTARGETEND, CLng(0), CLng(0))
+            DirectSCI.ReplaceTarget lenReplace, strReplaceWith
+            targetstart = targetstart + lenReplace
+            targetend = docLen
+            ReplaceAll = ReplaceAll + 1
+            Call SendEditor(SCI_SETTARGETSTART, targetstart)
+            Call SendEditor(SCI_SETTARGETEND, targetend)
+            Find = SendMessageString(SCI, SCI_SEARCHINTARGET, lenSearch, strSearchFor)
+      Loop
+      
 End Function
 
 
 Public Function FindText(txttofind As String, Optional FindReverse As Boolean = False, Optional ByVal findinrng As Boolean, Optional WrapDocument As Boolean = True, Optional CaseSensative As Boolean = False, Optional WordStart As Boolean = False, Optional WholeWord As Boolean = False, Optional RegExp As Boolean = False) As Boolean
-  Dim lval As Long, Find As Long
-  ' Sending a null string to scintilla for the find text willc ause errors!
-  If txttofind = "" Then Exit Function
-  lval = 0
-  If CaseSensative Then
-    lval = lval Or SCFIND_MATCHCASE
-  End If
-  If WordStart Then
-    lval = lval Or SCFIND_WORDSTART
-  End If
-  If WholeWord Then
-    lval = lval Or SCFIND_WHOLEWORD
-  End If
-  If RegExp Then
-    lval = lval Or SCFIND_REGEXP
-  End If
-  Dim targetstart As Long, targetend As Long, pos As Long
+    Dim lval As Long, Find As Long
+    Dim targetstart As Long, targetend As Long, pos As Long
+    
+    ' Sending a null string to scintilla for the find text will cause errors!
+    If txttofind = "" Then Exit Function
+    
+    lval = 0
+    If CaseSensative Then
+        lval = lval Or SCFIND_MATCHCASE
+    End If
+    
+    If WordStart Then
+        lval = lval Or SCFIND_WORDSTART
+    End If
+    
+    If WholeWord Then
+        lval = lval Or SCFIND_WHOLEWORD
+    End If
+    
+    If RegExp Then
+        lval = lval Or SCFIND_REGEXP
+    End If
+  
     Call SendEditor(SCI_SETSEARCHFLAGS, lval)
+    
     If findinrng Then
         targetstart = SendMessage(SCI, SCI_GETSELECTIONSTART, CLng(0), CLng(0))
         targetend = SendMessage(SCI, SCI_GETSELECTIONEND, CLng(0), CLng(0))
     Else
-      If FindReverse = False Then
-        targetstart = SendMessage(SCI, SCI_GETSELECTIONEND, 0, 0)
-        targetend = Len(Text)
-      Else
-        targetstart = SendMessage(SCI, SCI_GETSELECTIONSTART, 0, 0)
-        targetend = 0
-      End If
+        If FindReverse = False Then
+            targetstart = SendMessage(SCI, SCI_GETSELECTIONEND, 0, 0)
+            targetend = Len(Text)
+        Else
+            targetstart = SendMessage(SCI, SCI_GETSELECTIONSTART, 0, 0)
+            targetend = 0
+        End If
     End If
+    
     ' Creamos una región de búsqueda (que puede ser el texto completo)
     Call SendEditor(SCI_SETTARGETSTART, targetstart)
     Call SendEditor(SCI_SETTARGETEND, targetend)
     Find = SendMessageString(SCI, SCI_SEARCHINTARGET, Len(txttofind), txttofind)
+    
     ' Seleccionamos lo que se ha encontrado
     If Find > -1 Then
-
         targetstart = SendMessage(SCI, SCI_GETTARGETSTART, CLng(0), CLng(0))
         targetend = SendMessage(SCI, SCI_GETTARGETEND, CLng(0), CLng(0))
         DirectSCI.SetSel targetstart, targetend
     Else
-      If WrapDocument Then
-        If FindReverse = False Then
-          targetstart = 0
-          targetend = Len(Text)
-        Else
-          targetstart = Len(Text)
-          targetend = 0
+    
+        If WrapDocument Then
+        
+            If FindReverse = False Then
+                targetstart = 0
+                targetend = Len(Text)
+            Else
+                targetstart = Len(Text)
+                targetend = 0
+            End If
+            
+            Call SendEditor(SCI_SETTARGETSTART, targetstart)
+            Call SendEditor(SCI_SETTARGETEND, targetend)
+            Find = SendMessageString(SCI, SCI_SEARCHINTARGET, Len(txttofind), txttofind)
+            
+            If Find > -1 Then
+                targetstart = SendMessage(SCI, SCI_GETTARGETSTART, CLng(0), CLng(0))
+                targetend = SendMessage(SCI, SCI_GETTARGETEND, CLng(0), CLng(0))
+                DirectSCI.SetSel targetstart, targetend
+            End If
+            
         End If
-        Call SendEditor(SCI_SETTARGETSTART, targetstart)
-        Call SendEditor(SCI_SETTARGETEND, targetend)
-        Find = SendMessageString(SCI, SCI_SEARCHINTARGET, Len(txttofind), txttofind)
-        If Find > -1 Then
-          targetstart = SendMessage(SCI, SCI_GETTARGETSTART, CLng(0), CLng(0))
-          targetend = SendMessage(SCI, SCI_GETTARGETEND, CLng(0), CLng(0))
-          DirectSCI.SetSel targetstart, targetend
-        End If
-      End If
+        
     End If
 
-  ' A find has been performed so now FindNext will work.
-  bFindEvent = True
-  If Find > -1 Then
-    FindText = True
-  Else
-    FindText = False
-  End If
+    ' A find has been performed so now FindNext will work.
+    bFindEvent = True
+    If Find > -1 Then
+          FindText = True
+    Else
+          FindText = False
+    End If
 
-  ' Set the info that we've used so we findnext can send the same thing
-  ' out if called.
+    ' Set the info that we've used so we findnext can send the same thing
+    ' out if called.
 
     bWrap = WrapDocument
     bCase = CaseSensative
