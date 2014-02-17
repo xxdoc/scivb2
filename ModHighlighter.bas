@@ -155,16 +155,16 @@ Public Function SetHighlighters(scisimple As scisimple, strHighlighter As String
         scisimple.DirectSCI.StyleSetEOLFilled i, CLng(Highlighters(X).StyleEOLFilled(i))
   Next i
   
-  scisimple.DirectSCI.StyleSetFore 35, scisimple.BraceBadFore
-  scisimple.DirectSCI.StyleSetFore 34, scisimple.BraceMatchFore
-  scisimple.DirectSCI.StyleSetBack 35, scisimple.BraceBadBack
-  scisimple.DirectSCI.StyleSetBack 34, scisimple.BraceMatchBack
-  scisimple.DirectSCI.StyleSetBold 35, scisimple.BraceMatchBold
-  scisimple.DirectSCI.StyleSetBold 34, scisimple.BraceMatchBold
-  scisimple.DirectSCI.StyleSetItalic 35, scisimple.BraceMatchItalic
-  scisimple.DirectSCI.StyleSetItalic 34, scisimple.BraceMatchItalic
-  scisimple.DirectSCI.StyleSetUnderline 35, scisimple.BraceMatchUnderline
-  scisimple.DirectSCI.StyleSetUnderline 34, scisimple.BraceMatchUnderline
+  scisimple.DirectSCI.StyleSetFore 35, scisimple.misc.BraceBadFore
+  scisimple.DirectSCI.StyleSetFore 34, scisimple.misc.BraceMatchFore
+  scisimple.DirectSCI.StyleSetBack 35, scisimple.misc.BraceBadBack
+  scisimple.DirectSCI.StyleSetBack 34, scisimple.misc.BraceMatchBack
+  scisimple.DirectSCI.StyleSetBold 35, scisimple.misc.BraceMatchBold
+  scisimple.DirectSCI.StyleSetBold 34, scisimple.misc.BraceMatchBold
+  scisimple.DirectSCI.StyleSetItalic 35, scisimple.misc.BraceMatchItalic
+  scisimple.DirectSCI.StyleSetItalic 34, scisimple.misc.BraceMatchItalic
+  scisimple.DirectSCI.StyleSetUnderline 35, scisimple.misc.BraceMatchUnderline
+  scisimple.DirectSCI.StyleSetUnderline 34, scisimple.misc.BraceMatchUnderline
   
   CurrentHighlighter = X
   scisimple.DirectSCI.Colourise 0, -1

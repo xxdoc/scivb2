@@ -28,7 +28,7 @@ Public Const m_def_EdgeColumn = 0
 Public Const m_def_EdgeMode = 0
 Public Const m_def_EOL = 0
 Public Const m_def_UseTabs = 0
-Public Const m_def_WordWrap = 1
+Public Const m_def_WordWrap = 1 '0=none, 1 = wrap to word, 2=wrap to char (unused)
 Public Const m_def_MarginFore = vbBlack
 Public Const m_def_MarginBack = &HE0E0E0
 Public Const m_def_LineBackColor = vbYellow
@@ -64,16 +64,16 @@ Public Const m_def_FoldMarker = 2
 Public Const m_def_FoldComment = True
 Public Const m_def_FoldCompact = False
 Public Const m_def_FoldHTML = False
-Public Const m_def_FoldHi = 0
-Public Const m_def_FoldLo = 0
+'Public Const m_def_FoldHi = 0
+'Public Const m_def_FoldLo = 0
 
 Public Const m_def_AutoCompleteStart = "."
 Public Const m_def_AutoCompleteOnCTRLSpace = True
 Public Const m_def_AutoCompleteString = "if then else"
 Public Const m_def_AutoShowAutoComplete = 0
 
-Public Const m_def_BookmarkBack = vbBlack
-Public Const m_def_BookMarkFore = vbWhite
+'Public Const m_def_BookmarkBack = vbBlack
+'Public Const m_def_BookMarkFore = vbWhite
 Public Const m_def_MarkerBack = vbBlack
 Public Const m_def_MarkerFore = vbWhite
 

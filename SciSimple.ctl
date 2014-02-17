@@ -30,6 +30,9 @@ Option Explicit
 
 Implements iSubclass
 
+Public misc As New CMiscSettings
+Public DirectSCI As New cDirectSCI
+
 Event AutoCompleteEvent(className As String)
 Event KeyPress(Char As Long)
 Event OnError(Number As String, Description As String)
@@ -47,7 +50,6 @@ Event AutoCSelection(Text As String)                      'Auto Completed select
 
 '=========[ scisimple private values ]====================
 Private SCI As Long           ' hwnd for the Scintilla window
-
 Private fWindowProc As Long   ' Proc Address of Scintilla.
 Private iSCISet As Integer    ' Generic way to see if Scintilla's set or not
 Private SC As cSubclass       ' Subclass for Scintilla Messages
@@ -65,7 +67,7 @@ End Enum
 Private lSCI As Long
 Private m_hMod As Long
 Private chStore As Long
-Public DirectSCI As New cDirectSCI
+
 Private APIStringLoaded As Boolean
 Private APIStrings() As String
 Private ActiveCallTip As Integer
@@ -84,21 +86,6 @@ Public Enum edge
   EdgeBackground = 2
 End Enum
 
-' Word wrap style Enum (Word wrap can be based on none, character or word)
-Public Enum WrapStyle
-  noWrap = 0
-  wrap = 1
-  WrapChar = 2
-End Enum
-
-' Macro Type.  This the array of information recorded while
-' macro recording is on.
-'Public Type MacroType
-'  lMsg As Long
-'  strChar As String
-'End Type
-'Private Macro() As MacroType
-
 ' Folding Style Enum (Folding can draw a box, arrow, circle, or Plus/Minus)
 Public Enum FoldingStyle
   FoldMarkerArrow = 0
@@ -107,22 +94,8 @@ Public Enum FoldingStyle
   FoldMarkerPlusMinus = 3
 End Enum
 
-' Gutter Type Enum (Using a symbol or linenumber gutter style.)
-Public Enum GutterType
-  GutSymbol = 0
-  GutLineNumber = 1
-End Enum
-
-
 'Property Variables:
 Dim m_CodePage As SC_CODETYPE
-Dim m_BraceMatchBold As Boolean
-Dim m_BraceMatchItalic As Boolean
-Dim m_BraceMatchUnderline As Boolean
-Dim m_BraceMatchBack As OLE_COLOR
-Dim m_BraceBadBack As OLE_COLOR
-Dim m_BraceMatch As OLE_COLOR
-Dim m_BraceBad As OLE_COLOR
 Dim m_SelStart As Long
 Dim m_SelEnd As Long
 Dim m_IndentationGuide As Boolean
@@ -148,17 +121,10 @@ Dim m_FoldMarker As FoldingStyle
 Dim m_AutoCloseBraces As Boolean
 Dim m_AutoCloseQuotes As Boolean
 Dim m_BraceHighlight As Boolean
-Dim m_CaretForeColor As OLE_COLOR
 Dim m_LineBackColor As OLE_COLOR
 Dim m_LineVisible As Boolean
 Dim m_CaretWidth As Long
 Dim m_ClearUndoAfterSave As Boolean
-Dim m_BookmarkBack As OLE_COLOR
-Dim m_BookMarkFore As OLE_COLOR
-Dim m_FoldHi As OLE_COLOR
-Dim m_FoldLo As OLE_COLOR
-Dim m_MarkerBack As OLE_COLOR
-Dim m_MarkerFore As OLE_COLOR
 Dim m_SelBack As OLE_COLOR
 Dim m_SelFore As OLE_COLOR
 Dim m_EndAtLastLine As Boolean
@@ -173,18 +139,15 @@ Dim m_EdgeColumn As Long
 Dim m_EdgeMode As edge
 Dim m_EOL As EOLStyle
 Dim m_Folding As Boolean
-Dim m_Gutter0Type As GutterType
-Dim m_Gutter0Width As Long
-Dim m_Gutter1Type As GutterType
-Dim m_Gutter1Width As Long
-Dim m_Gutter2Type As GutterType
-Dim m_Gutter2Width As Long
 Dim m_MaintainIndentation As Boolean
 Dim m_TabIndents As Boolean
 Dim m_BackSpaceUnIndents As Boolean
 Dim m_IndentWidth As Long
 Dim m_UseTabs As Boolean
-Dim m_WordWrap As WrapStyle
+Dim m_WordWrap As Long '0 = none, 1 = wrap, 2 = wrap char? (unused)
+Dim m_TabWidth As Long
+Dim m_EOLMode As Long
+
 
 Private bRegEx As Boolean
 Private bWholeWord As Boolean
@@ -202,16 +165,11 @@ Private bShowFlags As Boolean
 Private strAutoComplete As String
 Private strAutoCompleteStart As String
 Private bShowAutoComplete As Boolean
-
 Private bRepLng As Boolean
 Private bRepAll As Boolean
 
 
-'====[ hilighter Default Property Values: ]=======
-Dim m_TabWidth As Long
-Dim m_EOLMode As Long
-Dim m_HighlightBraces As Boolean
-'=================================================
+ '=========================[ subclassing, initilization, and usercontrol stuff ]====================================
 
 Private Sub Attach(hWndA As Long)
   Set SC = New cSubclass
@@ -464,10 +422,8 @@ Private Sub iSubclass_WndProc(ByVal bBefore As Boolean, bHandled As Boolean, lRe
                             fr.LaunchReplaceForm Me
                         End If
                         
-                        If Asc("G") = wParam Then 'INSERTING A BEL CHARACTER?
-                            Dim sline As Long
-                            sline = Trim(InputBox("Goto Line:"))
-                            If Len(sline) <> 0 Then Me.GotoLineCentered CLng(sline) - 1
+                        If Asc("G") = wParam Then
+                            Call ShowGoto
                             bHandled = True
                             lReturn = 0
                             wParam = 0
@@ -491,8 +447,9 @@ End Sub
 
 Public Sub SetOptions()
 
-        DirectSCI.SetCaretFore m_CaretForeColor
-        DirectSCI.SetCaretWidth m_CaretWidth
+        DirectSCI.SetCaretFore m_def_CaretForeColor
+        DirectSCI.SetCaretWidth m_def_CaretWidth
+        
         DirectSCI.SetEdgeColour m_EdgeColor
         DirectSCI.SetEdgeColumn m_EdgeColumn
         DirectSCI.SetEdgeMode m_EdgeMode
@@ -503,44 +460,40 @@ Public Sub SetOptions()
         DirectSCI.SetEOLMode m_EOL
         
         SendEditor SCI_SETCODEPAGE, m_CodePage, 0
-        FoldLo = m_FoldLo
-        FoldHi = m_FoldHi
         SetFoldMarker m_FoldMarker
         
-        DirectSCI.SetMarginTypeN 0, m_Gutter0Type
-        DirectSCI.SetMarginTypeN 1, m_Gutter1Type
-        DirectSCI.SetMarginTypeN 2, m_Gutter2Type
-        BraceBadFore = BraceBadFore
-        BraceMatchFore = BraceMatchFore
-        
-        'SetMarginWidthN 0, Gutter0Width
-        'SetMarginWidthN 1, Gutter1Width
-        'SetMarginWidthN 2, Gutter2Width
+        DirectSCI.SetMarginTypeN 0, misc.GutterType(gut0)
+        DirectSCI.SetMarginTypeN 1, misc.GutterType(gut1)
+        DirectSCI.SetMarginTypeN 2, misc.GutterType(gut2)
         
         If Folding = True Then
-          DirectSCI.SetMarginWidthN 2, m_Gutter2Width
+          DirectSCI.SetMarginWidthN 2, misc.GutterWidth(gut2)
         End If
         
         If LineNumbers = True Then
-          DirectSCI.SetMarginWidthN 0, m_Gutter0Width
+          DirectSCI.SetMarginWidthN 0, misc.GutterWidth(gut0)
         End If
         
         If ShowFlags = True Then
-          DirectSCI.SetMarginWidthN 1, m_Gutter1Width
+          DirectSCI.SetMarginWidthN 1, misc.GutterWidth(gut1)
         End If
         
         DirectSCI.SetCaretLineVisible m_LineVisible
         DirectSCI.SetCaretLineBack m_LineBackColor
         
-        MarkerBack = MarkerBack
-        MarkerFore = MarkerFore
-        BraceMatchBack = BraceMatchBack
-        BraceBadBack = BraceBadBack
-        BraceMatchBold = BraceMatchBold
-        BraceMatchItalic = BraceMatchItalic
-        BraceMatchUnderline = BraceMatchUnderline
-        DirectSCI.MarkerSetBack 1, m_BookmarkBack
-        DirectSCI.MarkerSetFore 1, m_BookMarkFore
+        misc.MarkerBack = misc.MarkerBack
+        misc.MarkerFore = misc.MarkerFore
+        
+        misc.BraceBadFore = misc.BraceBadFore
+        misc.BraceMatchFore = misc.BraceMatchFore
+        misc.BraceMatchBack = misc.BraceMatchBack
+        misc.BraceBadBack = misc.BraceBadBack
+        misc.BraceMatchBold = misc.BraceMatchBold
+        misc.BraceMatchItalic = misc.BraceMatchItalic
+        misc.BraceMatchUnderline = misc.BraceMatchUnderline
+        
+        'DirectSCI.MarkerSetBack 1, m_BookmarkBack
+        'DirectSCI.MarkerSetFore 1, m_BookMarkFore
         
         DirectSCI.SetOvertype m_OverType
         DirectSCI.SetHScrollBar m_ScrollBarH
@@ -561,43 +514,8 @@ Public Sub SetOptions()
         
 End Sub
 
-Public Sub MoveSCI(lLeft As Long, lTop As Long, lWidth As Long, lHeight As Long)
-     SetWindowPos SCI, 0, lLeft, lTop, lWidth / Screen.TwipsPerPixelX, lHeight / Screen.TwipsPerPixelY, SWP_NOOWNERZORDER Or SWP_NOZORDER Or SWP_FRAMECHANGED
-End Sub
 
-Private Sub RemoveHotKeys()
-  ' This just removes some of the common hot keys that
-  ' could cause scintilla to interfere with the application
-  
-  'DirectSCI.ClearCmdKey Asc("A") + LShift(SCMOD_CTRL, 16) 'sel all
-  'DirectSCI.ClearCmdKey Asc("V") + LShift(SCMOD_CTRL, 16) 'paste
-  'DirectSCI.ClearCmdKey Asc("X") + LShift(SCMOD_CTRL, 16) 'cut
-  'DirectSCI.ClearCmdKey Asc("Z") + LShift(SCMOD_CTRL, 16) 'undo
-  
-  DirectSCI.ClearCmdKey Asc("Y") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("W") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("B") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("C") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("D") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("E") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("F") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("G") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("H") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("I") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("J") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("K") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("L") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("M") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("N") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("O") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("P") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("Q") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("R") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("S") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("T") + LShift(SCMOD_CTRL, 16)
-  DirectSCI.ClearCmdKey Asc("U") + LShift(SCMOD_CTRL, 16)
-   'AssignCmdKey 32 + LShift(SCMOD_CTRL, 16), SCI_AUTOCSHOW
-End Sub
+
 
 Private Sub Detach()
   SC.UnSubAll
@@ -630,6 +548,7 @@ Private Sub UserControl_Initialize()
         'this is to prevent crash
         m_hMod = LoadLibrary("shell32.dll")
     
+        misc.Initilize Me
         UserControl_InitProperties 'normally this would only be called when the usercontrol is first dropped on a form..
         InitScintilla UserControl.hwnd
         
@@ -638,7 +557,7 @@ Private Sub UserControl_Initialize()
     
         If FolderExists(f) Then
             LoadHighlightersDirectory f
-            SetHighlighter Me, "java"
+            SetHighlighter "java"
         End If
        
        
@@ -681,39 +600,15 @@ End Function
 'Initialize Properties for User Control
 Private Sub UserControl_InitProperties()
     
+    bShowCallTips = m_def_ShowCallTips
     m_AutoCloseBraces = m_def_AutoCloseBraces
-    m_AutoCloseQuotes = m_def_AutoCloseQuotes
-    m_TabIndents = m_def_TabIndents
-    m_BackSpaceUnIndents = m_def_BackSpaceUnIndents
-    m_BookmarkBack = m_def_BookmarkBack
-    m_BookMarkFore = m_def_BookMarkFore
-    m_MarkerBack = m_def_MarkerBack
-    m_MarkerFore = m_def_MarkerFore
     m_TabWidth = m_def_TabWidth
-    m_CaretForeColor = m_def_CaretForeColor
-    m_CaretWidth = m_def_CaretWidth
-    m_EdgeColor = m_def_EdgeColor
     m_EOLMode = m_def_EOLMode
-    m_HighlightBraces = m_def_HighlightBraces
-    m_ClearUndoAfterSave = m_def_ClearUndoAfterSave
     m_EndAtLastLine = m_def_EndAtLastLine
-    m_MaintainIndentation = m_def_MaintainIndentation
-    m_OverType = m_def_OverType
-    
-    'scisimple code below
     m_AutoCloseQuotes = m_def_AutoCloseQuotes
-    m_BraceHighlight = m_def_BraceHighlight
-    m_CaretForeColor = m_def_CaretForeColor
     m_LineBackColor = m_def_LineBackColor
     m_LineVisible = m_def_LineVisible
-    m_CaretWidth = m_def_CaretWidth
     m_ClearUndoAfterSave = m_def_ClearUndoAfterSave
-    m_BookmarkBack = m_def_BookmarkBack
-    m_BookMarkFore = m_def_BookMarkFore
-    m_FoldHi = m_def_FoldHi
-    m_FoldLo = m_def_FoldLo
-    m_MarkerBack = m_def_MarkerBack
-    m_MarkerFore = m_def_MarkerFore
     m_SelBack = m_def_SelBack
     m_SelFore = m_def_SelFore
     m_EndAtLastLine = m_def_EndAtLastLine
@@ -723,18 +618,11 @@ Private Sub UserControl_InitProperties()
     m_ViewEOL = m_def_ViewEOL
     m_ViewWhiteSpace = m_def_ViewWhiteSpace
     m_ShowCallTips = m_def_ShowCallTips
-    bShowCallTips = m_def_ShowCallTips
     m_EdgeColor = m_def_EdgeColor
     m_EdgeColumn = m_def_EdgeColumn
     m_EdgeMode = m_def_EdgeMode
     m_EOL = m_def_EOL
     m_Folding = m_def_Folding
-    m_Gutter0Type = m_def_Gutter0Type
-    m_Gutter0Width = m_def_Gutter0Width
-    m_Gutter1Type = m_def_Gutter1Type
-    m_Gutter1Width = m_def_Gutter1Width
-    m_Gutter2Type = m_def_Gutter2Type
-    m_Gutter2Width = m_def_Gutter2Width
     m_MaintainIndentation = m_def_MaintainIndentation
     m_TabIndents = m_def_TabIndents
     m_BackSpaceUnIndents = m_def_BackSpaceUnIndents
@@ -746,10 +634,7 @@ Private Sub UserControl_InitProperties()
     m_MarginBack = m_def_MarginBack
     m_Text = m_def_Text
     m_SelText = m_def_SelText
-    'm_AutoCompleteStart = m_def_AutoCompleteStart
-    'm_AutoCompleteOnCTRLSpace = m_def_AutoCompleteOnCTRLSpace
     m_AutoCompleteString = m_def_AutoCompleteString
-    'm_AutoShowAutoComplete = m_def_AutoShowAutoComplete
     m_ContextMenu = m_def_ContextMenu
     m_IgnoreAutoCompleteCase = m_def_IgnoreAutoCompleteCase
     m_LineNumbers = m_def_LineNumbers
@@ -763,17 +648,93 @@ Private Sub UserControl_InitProperties()
     m_IndentationGuide = m_def_IndentationGuide
     m_SelStart = m_def_SelStart
     m_SelEnd = m_def_SelEnd
-    m_BraceMatch = m_def_BraceMatch
-    m_BraceBad = m_def_BraceBad
-    m_BraceMatchBold = m_def_BraceMatchBold
-    m_BraceMatchItalic = m_def_BraceMatchItalic
-    m_BraceMatchUnderline = m_def_BraceMatchUnderline
-    m_BraceMatchBack = m_def_BraceMatchBack
-    m_BraceBadBack = m_def_BraceBadBack
+    m_BraceHighlight = m_def_BraceHighlight
     m_CodePage = m_def_CodePage
+    
+    With misc
+        .BraceMatchFore = m_def_BraceMatch
+        .BraceBadFore = m_def_BraceBad
+        .BraceMatchBold = m_def_BraceMatchBold
+        .BraceMatchItalic = m_def_BraceMatchItalic
+        .BraceMatchUnderline = m_def_BraceMatchUnderline
+        .BraceMatchBack = m_def_BraceMatchBack
+        .BraceBadBack = m_def_BraceBadBack
+        .GutterType(gut0) = m_def_Gutter0Type
+        .GutterType(gut1) = m_def_Gutter1Type
+        .GutterType(gut2) = m_def_Gutter2Type
+        .GutterWidth(gut0) = m_def_Gutter0Width
+        .GutterWidth(gut1) = m_def_Gutter1Width
+        .GutterWidth(gut2) = m_def_Gutter2Width
+        .MarkerBack = m_def_MarkerBack
+        .MarkerFore = m_def_MarkerFore
+
+    End With
     
 End Sub
 
+'======================================[ Hilighter code below ] =================================
+Public Property Get CurrentHighlighter() As String
+  CurrentHighlighter = m_CurrentHighlighter
+End Property
+
+Public Property Let CurrentHighlighter(New_CurrentHighlighter As String)
+  m_CurrentHighlighter = New_CurrentHighlighter
+End Property
+
+Public Sub SetHighlighter(HighlighterName As String)
+  If hlCount = 0 Then Exit Sub
+  SetHighlighters Me, HighlighterName, m_MarginBack, m_MarginFore
+End Sub
+
+Public Sub LoadHighlighter(filePath As String)
+  On Error Resume Next
+  ModHighlighter.LoadHighlighter filePath
+End Sub
+
+Public Sub LoadHighlightersDirectory(dirPath As String)
+  On Error Resume Next
+  LoadDirectory dirPath
+End Sub
+
+Public Function ExportToHTML(filePath As String) As Boolean
+  On Error GoTo errHandler
+  Call ExportToHTML2(filePath, Me)
+  Exit Function
+errHandler:
+  ExportToHTML = False
+End Function
+
+Public Sub CommentBlock()
+  CommentBlock2 Me
+End Sub
+
+Public Sub UncommentBlock()
+  UncommentBlock2 Me
+End Sub
+
+
+
+
+'=======================================[ general functionality ]====================================================
+
+'auto close braces/quotes are handled by vb code in the subclass proc...
+Public Property Get AutoCloseBraces() As Boolean    'When this is set to true braces <B>{, [, (</b> will be closed automatically.
+    AutoCloseBraces = m_AutoCloseBraces
+End Property
+
+Public Property Let AutoCloseBraces(ByVal New_AutoCloseBraces As Boolean)
+    m_AutoCloseBraces = New_AutoCloseBraces
+    PropertyChanged "AutoCloseBraces"
+End Property
+
+Public Property Get AutoCloseQuotes() As Boolean    'When set to true quotes will automatically be closed.
+    AutoCloseQuotes = m_AutoCloseQuotes
+End Property
+
+Public Property Let AutoCloseQuotes(ByVal New_AutoCloseQuotes As Boolean)
+    m_AutoCloseQuotes = New_AutoCloseQuotes
+    PropertyChanged "AutoCloseQuotes"
+End Property
 
 Sub GotoLineCentered(ByVal line As Long, Optional selected As Boolean = True)
     Dim mline As Long
@@ -823,74 +784,128 @@ Public Function FileExists(strFile As String) As Boolean
   If Dir(strFile) <> "" Then FileExists = True
 End Function
 
-
-
-
-
-'======================================[ Hilighter code below ] =================================
-Public Sub SetHighlighter(Scintilla As scisimple, HighlighterName As String)
-  If hlCount = 0 Then Exit Sub
-  SetHighlighters Scintilla, HighlighterName, Scintilla.MarginBack, Scintilla.MarginFore
-  'Debug.Print "Highlighter set " & HighlighterName
+Public Sub MoveSCI(lLeft As Long, lTop As Long, lWidth As Long, lHeight As Long)
+     SetWindowPos SCI, 0, lLeft, lTop, lWidth / Screen.TwipsPerPixelX, lHeight / Screen.TwipsPerPixelY, SWP_NOOWNERZORDER Or SWP_NOZORDER Or SWP_FRAMECHANGED
 End Sub
 
-Public Sub LoadHighlighter(filePath As String)
-  On Error Resume Next
-  ModHighlighter.LoadHighlighter filePath
-End Sub
-
-Public Sub LoadHighlightersDirectory(dirPath As String)
-  On Error Resume Next
-  LoadDirectory dirPath
-End Sub
-
-Public Function ExportToHTML(filePath As String, Scintilla As scisimple) As Boolean
-  On Error GoTo errHandler
-  Call ExportToHTML2(filePath, Scintilla)
-  Exit Function
-errHandler:
-  ExportToHTML = False
+Public Function GetColumn() As Long
+  GetColumn = DirectSCI.GetColumn
 End Function
 
-Public Sub CommentBlock(SCI As scisimple)
-  CommentBlock2 SCI
-End Sub
+Public Function SendEditor(ByVal Msg As Long, Optional ByVal wParam As Long = 0, Optional ByVal lParam = 0) As Long
+    If VarType(lParam) = vbString Then
+        SendEditor = SendMessageString(SCI, Msg, IIf(wParam = 0, CLng(wParam), wParam), CStr(lParam))
+    Else
+        SendEditor = SendMessage(SCI, Msg, IIf(wParam = 0, CLng(wParam), wParam), IIf(lParam = 0, CLng(lParam), lParam))
+    End If
+End Function
 
-Public Sub UncommentBlock(SCI As scisimple)
-  UncommentBlock2 SCI
-End Sub
-
-
-
-
-'=======================================[ scisimple section of code ]====================================================
-'
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=0,0,0,0
-Public Property Get AutoCloseBraces() As Boolean    'When this is set to true braces <B>{, [, (</b> will be closed automatically.
-    AutoCloseBraces = m_AutoCloseBraces
+Public Property Get codePage() As SC_CODETYPE
+    codePage = m_CodePage
 End Property
 
-'Purpose: Auto Closes Braces
-'Remarks: When this property is set to true (, [, and < will automaticly.
-Public Property Let AutoCloseBraces(ByVal New_AutoCloseBraces As Boolean)
-    m_AutoCloseBraces = New_AutoCloseBraces
-    PropertyChanged "AutoCloseBraces"
+Public Property Let codePage(ByVal New_CodePage As SC_CODETYPE)
+    m_CodePage = New_CodePage
+    PropertyChanged "CodePage"
+    SendEditor SCI_SETCODEPAGE, New_CodePage, 0
 End Property
 
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=0,0,0,0
-Public Property Get AutoCloseQuotes() As Boolean    'When set to true quotes will automatically be closed.
-    AutoCloseQuotes = m_AutoCloseQuotes
+Public Function GetLineText(ByVal lLine As Long) As String
+  'On Error Resume Next
+  Dim txt As String
+  Dim lLength As Long
+  Dim i As Long
+  Dim bByte() As Byte
+  
+  
+  lLength = SendMessage(SCI, SCI_LINELENGTH, lLine, 0)
+  lLength = lLength - 1 'By default this will tag on Chr(10) + chr(13)
+  
+  If lLength > 0 Then
+    ReDim bByte(0 To lLength)
+    SendMessage SCI, SCI_GETLINE, lLine, VarPtr(bByte(0))
+    txt = Byte2Str(bByte())
+  Else
+    txt = ""  'This line is 0 length
+  End If
+  
+  GetLineText = txt
+  
+End Function
+
+Public Property Get SelStart() As Long
+    SelStart = DirectSCI.GetSelectionStart
 End Property
 
-Public Property Let AutoCloseQuotes(ByVal New_AutoCloseQuotes As Boolean)
-    m_AutoCloseQuotes = New_AutoCloseQuotes
-    PropertyChanged "AutoCloseQuotes"
+Public Property Let SelStart(ByVal New_SelStart As Long)
+    m_SelStart = New_SelStart
+    PropertyChanged "SelStart"
+    DirectSCI.SetSelectionStart New_SelStart
 End Property
 
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=13,0,0,0
+Public Property Get SelEnd() As Long
+    SelEnd = DirectSCI.GetSelectionEnd
+End Property
+
+Public Property Let SelEnd(ByVal New_SelEnd As Long)
+    m_SelEnd = New_SelEnd
+    PropertyChanged "SelEnd"
+    DirectSCI.SetSelectionEnd New_SelEnd
+End Property
+
+Public Property Get SelLength() As Long
+    On Error Resume Next
+    SelLength = Len(SelText)
+End Property
+
+Public Property Let SelLength(vNewValue As Long)
+    On Error Resume Next
+    SelEnd = SelStart + vNewValue
+End Property
+
+Public Function GotoLine(line As Long) As Long
+  DirectSCI.GotoLine line
+End Function
+
+Public Function GotoCol(Column As Long) As Long
+  GotoLineColumn GetCurrentLine, Column
+End Function
+
+Public Function SetFocusSci() As Long
+  DirectSCI.SetFocus
+End Function
+
+Public Function Redo() As Long
+  DirectSCI.Redo
+End Function
+
+Public Function Undo() As Long
+  DirectSCI.Undo
+End Function
+
+Public Function Cut() As Long
+  DirectSCI.Cut
+End Function
+
+Public Function Copy() As Long
+  DirectSCI.Copy
+End Function
+
+Public Function Paste() As Long
+  DirectSCI.Paste
+End Function
+
+Public Function SelectAll() As Long
+  DirectSCI.SelectAll
+End Function
+
+Public Function SelectLine() As Long
+  Dim curLine As Long
+  curLine = GetCurrentLine
+  DirectSCI.SetSel PositionFromLine(curLine), DirectSCI.GetLineEndPosition(curLine)
+End Function
+
+
 Public Property Get Text() As String    'Allows you to get and set the text of the scintilla window.
     Text = DirectSCI.GetText
 End Property
@@ -902,8 +917,6 @@ Public Property Let Text(ByVal New_Text As String)
     DirectSCI.SetFocus
 End Property
 
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=13,0,0,0
 Public Property Get SelText() As String 'Allows you to get and set the seltext of the scintilla window.
     SelText = DirectSCI.GetSelText 'm_SelText
 End Property
@@ -915,85 +928,35 @@ Public Property Let SelText(ByVal New_SelText As String)
     DirectSCI.SetFocus
 End Property
 
-Public Property Let CaretForeColor(ByVal New_CaretForeColor As OLE_COLOR)
-    m_CaretForeColor = New_CaretForeColor
-    PropertyChanged "CaretForeColor"
-    DirectSCI.SetCaretFore New_CaretForeColor
+Public Property Get ActiveLineBackColor() As OLE_COLOR    'Allows you to control the backcolor of the active line.
+    ActiveLineBackColor = m_LineBackColor
 End Property
 
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=10,0,0,vbblue
-Public Property Get LineBackColor() As OLE_COLOR    'Allows you to control the backcolor of the active line.
-    LineBackColor = m_LineBackColor
-End Property
-
-Public Property Let LineBackColor(ByVal New_LineBackColor As OLE_COLOR)
+Public Property Let ActiveLineBackColor(ByVal New_LineBackColor As OLE_COLOR)
     m_LineBackColor = New_LineBackColor
     PropertyChanged "LineBackColor"
     DirectSCI.SetCaretLineBack New_LineBackColor
 End Property
 
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=0,0,0,0
-Public Property Get LineVisible() As Boolean    'When set to true the active line will be highlighted using the color selected from LineBackColor.
-    LineVisible = m_LineVisible
+Public Property Get HighLightActiveLine() As Boolean    'When set to true the active line will be highlighted using the color selected from LineBackColor.
+   HighLightActiveLine = m_LineVisible
 End Property
 
-Public Property Let LineVisible(ByVal New_LineVisible As Boolean)
+Public Property Let HighLightActiveLine(ByVal New_LineVisible As Boolean)
     m_LineVisible = New_LineVisible
     PropertyChanged "LineVisible"
     DirectSCI.SetCaretLineVisible m_LineVisible
 End Property
 
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=10,0,0,0
-Public Property Get FoldHi() As OLE_COLOR   'This property is used for the folding gutter's back color.  The Hi color is the primary color, the Lo Color is the secondary color.
-    FoldHi = m_FoldHi
+Public Property Get MaintainIndentation() As Boolean 'If this is set to true the editor will automatically keep the previous line's indentation.
+    MaintainIndentation = m_MaintainIndentation
 End Property
 
-Public Property Let FoldHi(ByVal New_FoldHi As OLE_COLOR)
-    m_FoldHi = New_FoldHi
-    PropertyChanged "FoldHi"
-    If New_FoldHi <> m_def_FoldHi Then
-      DirectSCI.SetFoldMarginHiColour True, m_FoldHi
-    Else
-      DirectSCI.SetFoldMarginHiColour False, m_FoldHi
-    End If
+Public Property Let MaintainIndentation(ByVal New_MaintainIndentation As Boolean)
+    m_MaintainIndentation = New_MaintainIndentation
+    PropertyChanged "MaintainIndentation"
 End Property
 
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=10,0,0,0
-Public Property Get FoldLo() As OLE_COLOR   'This property is used for the folding gutter's back color.  The Hi color is the primary color, the Lo Color is the secondary color.
-    FoldLo = m_FoldLo
-End Property
-
-Public Property Let FoldLo(ByVal New_FoldLo As OLE_COLOR)
-    m_FoldLo = New_FoldLo
-    PropertyChanged "FoldLo"
-    If New_FoldLo <> m_def_FoldLo Then
-      DirectSCI.SetFoldMarginColour True, m_FoldLo
-    Else
-      DirectSCI.SetFoldMarginColour False, m_FoldLo
-    End If
-
-End Property
-
-
-
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=10,0,0,vbhighlight
-Public Property Get SelBack() As OLE_COLOR  'This allow's you to set the backcolor for selected text.
-    SelBack = m_SelBack
-End Property
-
-Public Property Let SelBack(ByVal New_SelBack As OLE_COLOR)
-    m_SelBack = New_SelBack
-    PropertyChanged "SelBack"
-    DirectSCI.SetSelBack True, m_SelBack
-End Property
-
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=0,0,0,1
 Public Property Get IndentationGuide() As Boolean   'If true indention guide's will be displayed.
     IndentationGuide = m_IndentationGuide
 End Property
@@ -1004,144 +967,10 @@ Public Property Let IndentationGuide(ByVal New_IndentationGuide As Boolean)
     DirectSCI.SetIndentationGuides m_IndentationGuide
 End Property
 
-Public Property Get SelFore() As OLE_COLOR  'The allows you to control the fore color of the selected color.
-    SelFore = m_SelFore
-End Property
+Public Function GetLineIndentPosition(lLine As Long) As Long
+  GetLineIndentPosition = SendEditor(SCI_GETLINEINDENTPOSITION, lLine)
+End Function
 
-Public Property Let SelFore(ByVal New_SelFore As OLE_COLOR)
-    m_SelFore = New_SelFore
-    PropertyChanged "SelFore"
-    DirectSCI.SetSelFore True, m_SelFore
-End Property
-
-
-
-Public Property Get ShowCallTips() As Boolean   'If this is set to true then calltips will be displayed.  To use this you must also use <B>LoadAPIFile</b> to load an external API file which contains simple instructions to the editor on what calltips to display.
-    ShowCallTips = m_ShowCallTips
-End Property
-
-Public Property Let ShowCallTips(ByVal New_ShowCallTips As Boolean)
-    m_ShowCallTips = New_ShowCallTips
-    PropertyChanged "ShowCallTips"
-    bShowCallTips = m_ShowCallTips
-End Property
-
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=0,0,0,0
-Public Property Get Folding() As Boolean    'If true folding will be automatically handled.
-    Folding = m_Folding
-End Property
-
-Public Property Let Folding(ByVal New_Folding As Boolean)
-    m_Folding = New_Folding
-    PropertyChanged "Folding"
-    If m_Folding Then
-      DirectSCI.SetMarginWidthN 2, Gutter2Width
-    Else
-      DirectSCI.SetMarginWidthN 2, 0
-    End If
-    InitFolding New_Folding
-End Property
-
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=14,0,0,0
-Public Property Get Gutter0Type() As GutterType
-    Gutter0Type = m_Gutter0Type
-End Property
-
-Public Property Let Gutter0Type(ByVal New_Gutter0Type As GutterType)
-    m_Gutter0Type = New_Gutter0Type
-    PropertyChanged "Gutter0Type"
-    DirectSCI.SetMarginTypeN 0, m_Gutter0Type
-End Property
-
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=8,0,0,0
-Public Property Get Gutter0Width() As Long
-    Gutter0Width = m_Gutter0Width
-End Property
-
-Public Property Let Gutter0Width(ByVal New_Gutter0Width As Long)
-    m_Gutter0Width = New_Gutter0Width
-    PropertyChanged "Gutter0Width"
-    DirectSCI.SetMarginWidthN 0, New_Gutter0Width
-    If LineNumbers = True Then
-      DirectSCI.SetMarginWidthN 0, m_Gutter0Width
-    Else
-      DirectSCI.SetMarginWidthN 0, 0
-    End If
-End Property
-
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=14,0,0,0
-Public Property Get Gutter1Type() As GutterType
-    Gutter1Type = m_Gutter1Type
-End Property
-
-Public Property Let Gutter1Type(ByVal New_Gutter1Type As GutterType)
-    m_Gutter1Type = New_Gutter1Type
-    PropertyChanged "Gutter1Type"
-    DirectSCI.SetMarginTypeN 1, m_Gutter1Type
-    If ShowFlags = True Then
-      DirectSCI.SetMarginWidthN 1, New_Gutter1Type
-    Else
-      DirectSCI.SetMarginWidthN 1, 0
-    End If
-End Property
-
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=8,0,0,0
-Public Property Get Gutter1Width() As Long
-    Gutter1Width = m_Gutter1Width
-End Property
-
-Public Property Let Gutter1Width(ByVal New_Gutter1Width As Long)
-    m_Gutter1Width = New_Gutter1Width
-    PropertyChanged "Gutter1Width"
-    If Folding = True Then
-      DirectSCI.SetMarginWidthN 2, m_Gutter1Width
-    Else
-      DirectSCI.SetMarginWidthN 2, 0
-    End If
-End Property
-
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=14,0,0,0
-Public Property Get Gutter2Type() As GutterType
-    Gutter2Type = m_Gutter2Type
-End Property
-
-Public Property Let Gutter2Type(ByVal New_Gutter2Type As GutterType)
-    m_Gutter2Type = New_Gutter2Type
-    PropertyChanged "Gutter2Type"
-    DirectSCI.SetMarginTypeN 2, m_Gutter2Type
-End Property
-
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=8,0,0,0
-Public Property Get Gutter2Width() As Long
-    Gutter2Width = m_Gutter2Width
-End Property
-
-Public Property Let Gutter2Width(ByVal New_Gutter2Width As Long)
-    m_Gutter2Width = New_Gutter2Width
-    PropertyChanged "Gutter2Width"
-    DirectSCI.SetMarginWidthN 2, New_Gutter2Width
-End Property
-
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=0,0,0,1
-Public Property Get MaintainIndentation() As Boolean 'If this is set to true the editor will automatically keep the previous line's indentation.
-    MaintainIndentation = m_MaintainIndentation
-End Property
-
-Public Property Let MaintainIndentation(ByVal New_MaintainIndentation As Boolean)
-    m_MaintainIndentation = New_MaintainIndentation
-    PropertyChanged "MaintainIndentation"
-End Property
-
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=0,0,0,1
 Public Property Get TabIndents() As Boolean 'If this is true tab inserts indent characters.  If it is set to false tab will insert spaces.
     TabIndents = m_TabIndents
 End Property
@@ -1152,8 +981,6 @@ Public Property Let TabIndents(ByVal New_TabIndents As Boolean)
     DirectSCI.SetTabIndents m_TabIndents
 End Property
 
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=0,0,0,0
 Public Property Get BackSpaceUnIndents() As Boolean 'If tabindents is set to false, and BackSpaceUnIndents is set to true then the backspaceunindents will remove the same number of spaces as tab inserts.  If it's set to false then it will work normally.
     BackSpaceUnIndents = m_BackSpaceUnIndents
 End Property
@@ -1164,8 +991,6 @@ Public Property Let BackSpaceUnIndents(ByVal New_BackSpaceUnIndents As Boolean)
     DirectSCI.SetBackSpaceUnIndents m_BackSpaceUnIndents
 End Property
 
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=13,0,0,0
 Public Property Get AutoCompleteString() As String  'This store's the list which autocomplete will use.  Each word needs to be seperated by a space.
     AutoCompleteString = m_AutoCompleteString
 End Property
@@ -1189,11 +1014,25 @@ Public Property Get LineNumbers() As Boolean    'If this is set to true then the
     LineNumbers = m_LineNumbers
 End Property
 
+Public Function ConvertEOLMode()
+  SendEditor SCI_CONVERTEOLS, DirectSCI.GetEOLMode
+End Function
+
+Public Sub GotoLineColumn(iLine As Long, iCol As Long)
+  Dim i As Long
+  i = SendEditor(SCI_FINDCOLUMN, iLine, iCol)
+  DirectSCI.SetSel i, i
+End Sub
+
+Public Sub ClearUndoBuffer()
+  SendEditor SCI_EMPTYUNDOBUFFER
+End Sub
+
 Public Property Let LineNumbers(ByVal New_LineNumbers As Boolean)
     m_LineNumbers = New_LineNumbers
     PropertyChanged "LineNumbers"
     If m_LineNumbers Then
-      DirectSCI.SetMarginWidthN 0, Gutter0Width
+      DirectSCI.SetMarginWidthN 0, misc.GutterWidth(gut0)
     Else
       DirectSCI.SetMarginWidthN 0, 0
     End If
@@ -1221,7 +1060,7 @@ Public Property Let ShowFlags(ByVal New_ShowFlags As Boolean)
     m_ShowFlags = New_ShowFlags
     PropertyChanged "ShowFlags"
     If m_ShowFlags Then
-      DirectSCI.SetMarginWidthN 1, Gutter1Width
+      DirectSCI.SetMarginWidthN 1, misc.GutterWidth(gut1)
     Else
       DirectSCI.SetMarginWidthN 1, 0
     End If
@@ -1248,14 +1087,356 @@ Public Property Let useTabs(ByVal New_UseTabs As Boolean)
     DirectSCI.SetUseTabs m_UseTabs
 End Property
 
-Public Property Get WordWrap() As WrapStyle 'If set to true the document will wrap lines which are longer than itself.  If false then it will dsiplay normally.
-    WordWrap = m_WordWrap
+Public Property Get WordWrap() As Boolean 'If set to true the document will wrap lines which are longer than itself.  If false then it will dsiplay normally.
+    WordWrap = IIf(m_WordWrap = 0, False, True)
 End Property
 
-Public Property Let WordWrap(ByVal New_WordWrap As WrapStyle)
-    m_WordWrap = New_WordWrap
+Public Property Let WordWrap(ByVal wrap As Boolean)
+    m_WordWrap = IIf(wrap, 1, 0)
     PropertyChanged "WordWrap"
-    DirectSCI.SetWrapMode New_WordWrap
+    DirectSCI.SetWrapMode m_WordWrap
+End Property
+
+Public Property Get SelBack() As OLE_COLOR  'This allow's you to set the backcolor for selected text.
+    SelBack = m_SelBack
+End Property
+
+Public Property Let SelBack(ByVal New_SelBack As OLE_COLOR)
+    m_SelBack = New_SelBack
+    PropertyChanged "SelBack"
+    DirectSCI.SetSelBack True, m_SelBack
+End Property
+
+Public Property Get SelFore() As OLE_COLOR  'The allows you to control the fore color of the selected color.
+    SelFore = m_SelFore
+End Property
+
+Public Property Let SelFore(ByVal New_SelFore As OLE_COLOR)
+    m_SelFore = New_SelFore
+    PropertyChanged "SelFore"
+    DirectSCI.SetSelFore True, m_SelFore
+End Property
+
+
+Public Function PositionFromLine(lLine As Long) As Long
+  PositionFromLine = SendEditor(SCI_POSITIONFROMLINE, lLine)
+End Function
+
+Public Sub SetCurrentPosition(lval As Long)
+  SendEditor SCI_SETCURRENTPOS, lval
+End Sub
+
+Public Function GetCurrentLine() As Long
+  GetCurrentLine = DirectSCI.LineFromPosition(DirectSCI.GetCurPos)
+End Function
+
+Public Function GetCaretInLine() As Long
+  Dim caret As Long, lineStart As Long, line As Long
+  caret = DirectSCI.GetCurPos
+  line = GetCurrentLine
+  lineStart = PositionFromLine(line)
+  GetCaretInLine = caret - lineStart
+End Function
+
+Public Sub ShowAutoComplete(strVal As String)
+  Dim i As Long
+  i = ToLastSpaceCount
+  SendMessageString SCI, SCI_AUTOCSHOW, i, SortString(strVal)
+End Sub
+
+Public Function GetCurrentWord() As String
+Dim line As String, PartLine As String, i As Integer, X As Integer
+Dim newstr As String, iPos As Integer, iStart As Long, iEnd As Long
+Dim a, i2 As Integer
+
+  line = GetLineText(GetCurrentLine())
+
+  X = GetCaretInLine
+  newstr = ""
+        For i2 = X - 1 To 1 Step -1
+            If Mid(line, i2, 1) < 33 And newstr <> "" Then    ' ignore whitespace before (
+                Exit For
+            Else
+                If InStr(1, CallTipWordCharacters, Mid(line, i2, 1)) > 0 Then
+                    newstr = Mid(line, i2, 1) & newstr
+                Else
+                    If Asc(Mid(line, i2, 1)) > 33 Then   ' not valid character (and not whitespace)
+                        Exit For
+                    End If
+                End If
+            End If
+        Next i2
+
+  GetCurrentWord = newstr
+End Function
+
+Public Function LoadAPIFile(strFile As String)
+  ' This function will load an api file for calltips.
+  Dim iFile As Integer, str As String, i As Integer
+  
+  iFile = FreeFile
+  If FileExists(strFile) = False Then Exit Function
+  Erase APIStrings  'Clear the old array
+  i = 0
+  
+  APIStrings = Split(APIReadFile(strFile), vbCr)
+  For i = 0 To UBound(APIStrings) - 1
+        APIStrings(i) = Replace(APIStrings(i), Chr(13), "")
+        APIStrings(i) = Replace(APIStrings(i), Chr(10), "")
+  Next i
+  
+  APIStringLoaded = True
+  
+End Function
+
+Public Function AddToAPIFile(ApiFunction As String)
+   
+   If Not APIStringLoaded Then
+        ReDim Preserve APIStrings(1)
+   Else
+       ReDim Preserve APIStrings(UBound(APIStrings) + 1)
+   End If
+   
+   APIStrings(UBound(APIStrings)) = ApiFunction
+   APIStringLoaded = True
+   
+End Function
+
+Public Function CurrentFunction()
+
+Dim line As String
+Dim i As Integer, i2 As Integer, X As Integer
+line = GetLineText(GetCurrentLine())
+
+  CurrentFunction = ""
+  X = GetCaretInLine
+
+  For i = X To 1 Step -1
+    If Mid(line, i, 1) = "(" Then
+        For i2 = i - 1 To 1 Step -1
+            If Mid(line, i2, 1) < 33 And CurrentFunction <> "" Then    ' ignore whitespace before (
+                Exit For
+            Else
+                If InStr(1, CallTipWordCharacters, Mid(line, i2, 1)) > 0 Then
+                    CurrentFunction = Mid(line, i2, 1) & CurrentFunction
+                Else
+                    If Asc(Mid(line, i2, 1)) > 33 Then   ' not valid character (and not whitespace)
+                        Exit For
+                    End If
+                End If
+            End If
+        Next i2
+    End If
+
+    If CurrentFunction <> "" Then
+        Exit For
+    End If
+  Next i
+
+  ' Cant find a function going backwards - check forwards instead ?
+  If CurrentFunction = "" Then
+    For i = X To Len(line)
+        If Mid(line, i, 1) = "(" Then
+            For i2 = i - 1 To 1 Step -1
+                If Mid(line, i2, 1) < 33 And CurrentFunction <> "" Then    ' ignore whitespace before (
+                    Exit For
+                Else
+                    If InStr(1, CallTipWordCharacters, Mid(line, i2, 1)) > 0 Then
+                        CurrentFunction = Mid(line, i2, 1) & CurrentFunction
+                    Else
+                        If Asc(Mid(line, i2, 1)) > 33 Then   ' not valid character (and not whitespace)
+                            Exit For
+                        End If
+                    End If
+                End If
+            Next i2
+        End If
+        If CurrentFunction <> "" Then
+            Exit For
+    End If
+    Next i
+
+  End If
+
+  End Function
+
+Public Sub SaveToFile(strFile As String)
+  Dim str As String
+  ConvertEOLMode
+  str = DirectSCI.GetText
+  WriteToFile strFile, str
+  ' Remove the modified flag from scintilla
+  DirectSCI.SetSavePoint
+  If m_ClearUndoAfterSave Then ClearUndoBuffer
+End Sub
+
+Public Sub LoadFile(strFile As String)
+  Dim str As String
+  If Not FileExists(strFile) Then Exit Sub  'We don't want to have an error if the file doesn't exist.
+  str = APIReadFile(strFile)
+  DirectSCI.SetText str
+  ClearUndoBuffer
+  DirectSCI.ConvertEOLs DirectSCI.GetEOLMode
+  DirectSCI.SetFocus
+  DirectSCI.GotoPos 0
+  DirectSCI.SetSavePoint
+End Sub
+
+
+
+'===========================[ call tips ] ===================================
+
+Public Property Get ShowCallTips() As Boolean   'If this is set to true then calltips will be displayed.  To use this you must also use <B>LoadAPIFile</b> to load an external API file which contains simple instructions to the editor on what calltips to display.
+    ShowCallTips = m_ShowCallTips
+End Property
+
+Public Property Let ShowCallTips(ByVal New_ShowCallTips As Boolean)
+    m_ShowCallTips = New_ShowCallTips
+    PropertyChanged "ShowCallTips"
+    bShowCallTips = m_ShowCallTips
+End Property
+
+Public Sub SetCallTipHighlight(lStart As Long, lEnd As Long)
+  SendEditor SCI_CALLTIPSETHLT, lStart, lEnd
+End Sub
+
+Public Sub StopCallTip()
+  SendEditor SCI_CALLTIPCANCEL
+End Sub
+
+Public Sub ShowCallTip(strVal As String)
+  Dim bByte() As Byte
+  Str2Byte strVal, bByte
+  Call SendEditor(SCI_CALLTIPSHOW, DirectSCI.GetCurPos, VarPtr(bByte(0)))
+End Sub
+
+Private Sub StartCallTip(ch As Long)
+    ' This entire function is a bit of a hack.  It seems to work but it's very
+    ' messy.  If anyone cleans it up please send me a new version so I can add
+    ' it to this release.  Thanks :)
+    Dim line As String, PartLine As String, i As Integer, X As Integer
+    Dim newstr As String, iPos As Integer, iStart As Long, iEnd As Long
+    Dim a, i2 As Integer
+    
+    If APIStringLoaded = False Then Exit Sub
+    If UBound(APIStrings) = 0 Then Exit Sub
+    
+    If ch = Asc("(") Then
+          line = GetLineText(GetCurrentLine())
+        
+          X = GetCaretInLine
+          newstr = ""
+        
+          '
+          ' For those compilers that allow whitespace between function and parenthesis
+          ' ignore whitespace
+          '
+          '
+          '
+        
+                For i2 = X - 1 To 1 Step -1
+                    If Mid(line, i2, 1) < 33 And newstr <> "" Then    ' ignore whitespace before (
+                        Exit For
+                    Else
+                        If InStr(1, CallTipWordCharacters, Mid(line, i2, 1)) > 0 Then
+                            newstr = Mid(line, i2, 1) & newstr
+                        Else
+                            If Asc(Mid(line, i2, 1)) > 33 Then   ' not valid character (and not whitespace)
+                                Exit For
+                            End If
+                        End If
+                    End If
+                Next i2
+        
+            If Len(newstr) = 0 Then   ' blank line ?
+              StopCallTip
+              Exit Sub
+            End If
+        
+            newstr = newstr & "("    ' make it into a function name so no partial searches of other API functions
+        
+          ' Lookup the Function name in the API list
+            If GetUpper(APIStrings) > 0 Then
+                  For i = 0 To UBound(APIStrings)
+                        If InStr(1, LCase$(APIStrings(i)), LCase$(newstr)) <> 0 Then ' case insensitive string
+                                ActiveCallTip = i
+                    
+                                iPos = InStr(1, APIStrings(i), ")")
+                                ShowCallTip Left$(APIStrings(i), iPos) ' to end of function
+                    
+                                iPos = InStr(1, APIStrings(i), ",")
+                                If iPos > 0 Then
+                                    iStart = Len(newstr)
+                                    iEnd = iPos - 1
+                                    SetCallTipHighlight iStart, iEnd
+                                    Exit For
+                                Else
+                                    ' single parameter ?
+                                    If Len(newstr) + 1 <> Len(APIStrings(i)) Then
+                                        iStart = Len(newstr)
+                                        iEnd = Len(APIStrings(i)) - 1
+                                        SetCallTipHighlight iStart, iEnd
+                                        Exit For
+                                    End If
+                                End If
+                        End If
+                   Next
+            End If
+            Exit Sub
+    End If
+    
+    ' Do we have a tip already active ?
+    If DirectSCI.CallTipActive Then
+            If ch = Asc(")") Then
+                StopCallTip
+            Else
+                ' are we still in the current tooltip ?
+                line = GetLineText(GetCurrentLine())
+                X = GetCaretInLine
+                iPos = InStrRev(line, "(", X)
+                PartLine = Mid(line, iPos + 1, X - iPos) 'Get the chunk of the string were in
+        
+                If InStr(1, APIStrings(ActiveCallTip), ",") = 0 Then   ' only one param
+                    iStart = InStr(1, APIStrings(ActiveCallTip), "(") - 1
+                    iEnd = InStr(1, APIStrings(ActiveCallTip), ")") - 1
+                Else
+        
+                    'Count which param
+                    iPos = CountOccurancesOfChar(PartLine, ",")
+                    'Highlight Param in calltip
+                    iStart = ReturnPositionOfOcurrance(APIStrings(ActiveCallTip), ",", iPos) - 1
+                    iEnd = ReturnPositionOfOcurrance(APIStrings(ActiveCallTip), ",", iPos + 1)
+                End If
+                SetCallTipHighlight iStart, iEnd
+          End If
+    End If
+    
+End Sub
+
+'===========================[ end call tips ] ===================================
+
+
+
+
+
+
+
+'===============================[ folding ] =======================================
+
+
+Public Property Get Folding() As Boolean    'If true folding will be automatically handled.
+    Folding = m_Folding
+End Property
+
+Public Property Let Folding(ByVal New_Folding As Boolean)
+    m_Folding = New_Folding
+    PropertyChanged "Folding"
+    If m_Folding Then
+      DirectSCI.SetMarginWidthN 2, misc.GutterWidth(gut2)
+    Else
+      DirectSCI.SetMarginWidthN 2, 0
+    End If
+    InitFolding New_Folding
 End Property
 
 Public Property Get FoldMarker() As FoldingStyle
@@ -1336,8 +1517,7 @@ Private Sub InitFolding(EnableIt As Boolean)
   End If
 End Sub
 
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=0,0,0,0
+
 Public Property Get FoldAtElse() As Boolean
     FoldAtElse = m_FoldAtElse
 End Property
@@ -1394,380 +1574,22 @@ Public Property Let FoldHTML(ByVal New_FoldHTML As Boolean)
     End If
 End Property
 
-
-
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=10,0,0,0
-Public Property Get MarginFore() As OLE_COLOR
-    MarginFore = m_MarginFore
-End Property
-
-Public Property Let MarginFore(ByVal New_MarginFore As OLE_COLOR)
-    m_MarginFore = New_MarginFore
-    PropertyChanged "MarginFore"
-End Property
-
-'WARNING! DO NOT REMOVE OR MODIFY THE FOLLOWING COMMENTED LINES!
-'MemberInfo=10,0,0,0
-Public Property Get MarginBack() As OLE_COLOR
-    MarginBack = m_MarginBack
-End Property
-
-Public Property Let MarginBack(ByVal New_MarginBack As OLE_COLOR)
-    m_MarginBack = New_MarginBack
-    PropertyChanged "MarginBack"
-End Property
-
-Public Function GetCurrentLine() As Long
-  GetCurrentLine = DirectSCI.LineFromPosition(DirectSCI.GetCurPos)
-End Function
-
-Private Function ToLastSpaceCount() As Long
-  ' This function will figure out how many characters there are in the currently
-  ' selected word.  It gets the line text, finds the position of the caret in
-  ' the line text, then converts the line to a byte array to do a faster compare
-  ' till it reaches something not interpreted as a letter IE a space or a
-  ' line break.  This is kind of overly complex but seems to be faster overall
-
-  Dim L As Long, i As Long, current As Long, pos As Long, startWord As Long, iHold As Long
-  Dim str As String, bByte() As Byte, strTmp As String
-  Dim line As String
-  line = GetLineText(GetCurrentLine)
-  current = GetCaretInLine
-  startWord = current
-
-  Str2Byte line, bByte()
-
-  iHold = 0
-  While (startWord > 0) And InStr(1, CallTipWordCharacters, strTmp) > 0
-    startWord = startWord - 1
-    iHold = iHold + 1
-    If startWord >= 0 Then
-      strTmp = Chr(bByte(startWord))
+Public Sub FoldAll()
+  Dim MaxLine As Long, LineSeek As Long
+  MaxLine = DirectSCI.GetLineCount
+  DirectSCI.Colourise 0, -1
+  For LineSeek = 0 To MaxLine - 1
+    If DirectSCI.GetFoldLevel(LineSeek) And SC_FOLDLEVELHEADERFLAG Then
+      DirectSCI.ToggleFold LineSeek
     End If
-  Wend
-  If strTmp = " " Or strTmp = "." Then iHold = iHold - 1
-  ToLastSpaceCount = iHold
-End Function
-
-
-Public Function GetCaretInLine() As Long
-  Dim caret As Long, lineStart As Long, line As Long
-  caret = DirectSCI.GetCurPos
-  line = GetCurrentLine
-  lineStart = PositionFromLine(line)
-  GetCaretInLine = caret - lineStart
-End Function
-
-Public Sub ShowAutoComplete(strVal As String)
-  Dim i As Long
-  i = ToLastSpaceCount
-  SendMessageString SCI, SCI_AUTOCSHOW, i, SortString(strVal)
+  Next
+  DirectSCI.ShowLines 0, 0
 End Sub
 
-Public Function GetCurrentWord() As String
-Dim line As String, PartLine As String, i As Integer, X As Integer
-Dim newstr As String, iPos As Integer, iStart As Long, iEnd As Long
-Dim a, i2 As Integer
-
-  line = GetLineText(GetCurrentLine())
-
-  X = GetCaretInLine
-  newstr = ""
-        For i2 = X - 1 To 1 Step -1
-            If Mid(line, i2, 1) < 33 And newstr <> "" Then    ' ignore whitespace before (
-                Exit For
-            Else
-                If InStr(1, CallTipWordCharacters, Mid(line, i2, 1)) > 0 Then
-                    newstr = Mid(line, i2, 1) & newstr
-                Else
-                    If Asc(Mid(line, i2, 1)) > 33 Then   ' not valid character (and not whitespace)
-                        Exit For
-                    End If
-                End If
-            End If
-        Next i2
-
-  GetCurrentWord = newstr
-End Function
-
-'+------------------------------------------------------+
-'| This function is used to maintain the level of       |
-'| indentation.  No values are required.                |
-'+------------------------------------------------------+
-Private Sub MaintainIndent()
-  On Error Resume Next
-  Dim g As Long
-  Dim indentAmount As Long
-  Dim lastLine As Long
-  Dim curLine As Long
-  g = DirectSCI.GetCurPos
-  ' Get the current line
-  curLine = GetCurrentLine + 1
-  ' Get the previous line
-  lastLine = curLine - 1
-
-  If GetLineText(lastLine - 1) = "" Then
-    'We can move on because in this case there is no text on the
-    'previous line.
-    Exit Sub
-  End If
-  indentAmount = 0
-  While (lastLine >= 0) And (DirectSCI.GetLineEndPosition(lastLine) - PositionFromLine(lastLine) = 0)
-    ' Loop threw the line counting spaces
-    lastLine = lastLine - 1
-    If lastLine >= 0 Then
-      indentAmount = DirectSCI.GetLineIndentation(lastLine)
-    End If
-    If indentAmount > 0 Then
-      Call DirectSCI.SetLineIndentation(curLine - 1, indentAmount)
-      Call SetCurrentPosition(GetLineIndentPosition(curLine - 1))
-
-      Call DirectSCI.SetSel(DirectSCI.GetCurPos, DirectSCI.GetCurPos)
-    End If
-  Wend
-End Sub
-
-Public Function PositionFromLine(lLine As Long) As Long
-  PositionFromLine = SendEditor(SCI_POSITIONFROMLINE, lLine)
-End Function
-
-Public Sub SetCurrentPosition(lval As Long)
-  SendEditor SCI_SETCURRENTPOS, lval
-End Sub
-
-Public Function LoadAPIFile(strFile As String)
-  ' This function will load an api file for calltips.
-  Dim iFile As Integer, str As String, i As Integer
-  
-  iFile = FreeFile
-  If FileExists(strFile) = False Then Exit Function
-  Erase APIStrings  'Clear the old array
-  i = 0
-  
-  APIStrings = Split(APIReadFile(strFile), vbCr)
-  For i = 0 To UBound(APIStrings) - 1
-        APIStrings(i) = Replace(APIStrings(i), Chr(13), "")
-        APIStrings(i) = Replace(APIStrings(i), Chr(10), "")
-  Next i
-  
-  APIStringLoaded = True
-  
-End Function
-
-Public Function AddToAPIFile(ApiFunction As String)
-   
-   If Not APIStringLoaded Then
-        ReDim Preserve APIStrings(1)
-   Else
-       ReDim Preserve APIStrings(UBound(APIStrings) + 1)
-   End If
-   
-   APIStrings(UBound(APIStrings)) = ApiFunction
-   APIStringLoaded = True
-   
-End Function
+'===============================[ end folding ] =======================================
 
 
-
-Public Sub SetCallTipHighlight(lStart As Long, lEnd As Long)
-  SendEditor SCI_CALLTIPSETHLT, lStart, lEnd
-End Sub
-
-Public Sub StopCallTip()
-  SendEditor SCI_CALLTIPCANCEL
-End Sub
-
-Public Sub ShowCallTip(strVal As String)
-  Dim bByte() As Byte
-  Str2Byte strVal, bByte
-  Call SendEditor(SCI_CALLTIPSHOW, DirectSCI.GetCurPos, VarPtr(bByte(0)))
-End Sub
-
-Public Function CurrentFunction()
-
-Dim line As String
-Dim i As Integer, i2 As Integer, X As Integer
-line = GetLineText(GetCurrentLine())
-
-  CurrentFunction = ""
-  X = GetCaretInLine
-
-  For i = X To 1 Step -1
-    If Mid(line, i, 1) = "(" Then
-        For i2 = i - 1 To 1 Step -1
-            If Mid(line, i2, 1) < 33 And CurrentFunction <> "" Then    ' ignore whitespace before (
-                Exit For
-            Else
-                If InStr(1, CallTipWordCharacters, Mid(line, i2, 1)) > 0 Then
-                    CurrentFunction = Mid(line, i2, 1) & CurrentFunction
-                Else
-                    If Asc(Mid(line, i2, 1)) > 33 Then   ' not valid character (and not whitespace)
-                        Exit For
-                    End If
-                End If
-            End If
-        Next i2
-    End If
-
-    If CurrentFunction <> "" Then
-        Exit For
-    End If
-  Next i
-
-  ' Cant find a function going backwards - check forwards instead ?
-  If CurrentFunction = "" Then
-    For i = X To Len(line)
-        If Mid(line, i, 1) = "(" Then
-            For i2 = i - 1 To 1 Step -1
-                If Mid(line, i2, 1) < 33 And CurrentFunction <> "" Then    ' ignore whitespace before (
-                    Exit For
-                Else
-                    If InStr(1, CallTipWordCharacters, Mid(line, i2, 1)) > 0 Then
-                        CurrentFunction = Mid(line, i2, 1) & CurrentFunction
-                    Else
-                        If Asc(Mid(line, i2, 1)) > 33 Then   ' not valid character (and not whitespace)
-                            Exit For
-                        End If
-                    End If
-                End If
-            Next i2
-        End If
-        If CurrentFunction <> "" Then
-            Exit For
-    End If
-    Next i
-
-  End If
-
-  End Function
-
-
-
-
-Private Sub StartCallTip(ch As Long)
-' This entire function is a bit of a hack.  It seems to work but it's very
-' messy.  If anyone cleans it up please send me a new version so I can add
-' it to this release.  Thanks :)
-Dim line As String, PartLine As String, i As Integer, X As Integer
-Dim newstr As String, iPos As Integer, iStart As Long, iEnd As Long
-Dim a, i2 As Integer
-
-If APIStringLoaded = False Then Exit Sub
-If UBound(APIStrings) = 0 Then Exit Sub
-
-If ch = Asc("(") Then
-  line = GetLineText(GetCurrentLine())
-
-  X = GetCaretInLine
-  newstr = ""
-
-  '
-  ' For those compilers that allow whitespace between function and parenthesis
-  ' ignore whitespace
-  '
-  '
-  '
-
-        For i2 = X - 1 To 1 Step -1
-            If Mid(line, i2, 1) < 33 And newstr <> "" Then    ' ignore whitespace before (
-                Exit For
-            Else
-                If InStr(1, CallTipWordCharacters, Mid(line, i2, 1)) > 0 Then
-                    newstr = Mid(line, i2, 1) & newstr
-                Else
-                    If Asc(Mid(line, i2, 1)) > 33 Then   ' not valid character (and not whitespace)
-                        Exit For
-                    End If
-                End If
-            End If
-        Next i2
-
-    If Len(newstr) = 0 Then   ' blank line ?
-      StopCallTip
-      Exit Sub
-    End If
-
-    newstr = newstr & "("    ' make it into a function name so no partial searches of other API functions
-
-  ' Lookup the Function name in the API list
-    If GetUpper(APIStrings) > 0 Then
-      For i = 0 To UBound(APIStrings)
-        If InStr(1, LCase$(APIStrings(i)), LCase$(newstr)) <> 0 Then ' case insensitive string
-
-            ActiveCallTip = i
-
-            iPos = InStr(1, APIStrings(i), ")")
-            ShowCallTip Left$(APIStrings(i), iPos) ' to end of function
-
-            iPos = InStr(1, APIStrings(i), ",")
-            If iPos > 0 Then
-                iStart = Len(newstr)
-                iEnd = iPos - 1
-                SetCallTipHighlight iStart, iEnd
-                Exit For
-            Else
-                ' single parameter ?
-                If Len(newstr) + 1 <> Len(APIStrings(i)) Then
-                    iStart = Len(newstr)
-                    iEnd = Len(APIStrings(i)) - 1
-                    SetCallTipHighlight iStart, iEnd
-                    Exit For
-                End If
-            End If
-        End If
-      Next
-    End If
-    Exit Sub
-End If
-
-' Do we have a tip already active ?
-If DirectSCI.CallTipActive Then
-    If ch = Asc(")") Then
-        StopCallTip
-    Else
-        ' are we still in the current tooltip ?
-        line = GetLineText(GetCurrentLine())
-        X = GetCaretInLine
-        iPos = InStrRev(line, "(", X)
-        PartLine = Mid(line, iPos + 1, X - iPos) 'Get the chunk of the string were in
-
-        If InStr(1, APIStrings(ActiveCallTip), ",") = 0 Then   ' only one param
-            iStart = InStr(1, APIStrings(ActiveCallTip), "(") - 1
-            iEnd = InStr(1, APIStrings(ActiveCallTip), ")") - 1
-        Else
-
-            'Count which param
-            iPos = CountOccurancesOfChar(PartLine, ",")
-            'Highlight Param in calltip
-            iStart = ReturnPositionOfOcurrance(APIStrings(ActiveCallTip), ",", iPos) - 1
-            iEnd = ReturnPositionOfOcurrance(APIStrings(ActiveCallTip), ",", iPos + 1)
-        End If
-        SetCallTipHighlight iStart, iEnd
-  End If
-End If
-End Sub
-
-Public Function GetLineIndentPosition(lLine As Long) As Long
-  GetLineIndentPosition = SendEditor(SCI_GETLINEINDENTPOSITION, lLine)
-End Function
-
-Public Sub LoadFile(strFile As String)
-  Dim str As String
-  If Not FileExists(strFile) Then Exit Sub  'We don't want to have an error if the file doesn't exist.
-  str = APIReadFile(strFile)
-  DirectSCI.SetText str
-  ClearUndoBuffer
-  DirectSCI.ConvertEOLs DirectSCI.GetEOLMode
-  DirectSCI.SetFocus
-  DirectSCI.GotoPos 0
-  DirectSCI.SetSavePoint
-End Sub
-
-Public Sub ClearUndoBuffer()
-  SendEditor SCI_EMPTYUNDOBUFFER
-End Sub
-
+'================================[ markers ] ==============================
 Public Sub ToggleMarker()
   On Error Resume Next
   If GetMarker(GetCurrentLine) = 4 Then
@@ -1807,50 +1629,42 @@ Private Sub DeleteAllMarkers(marknum As Long)
   SendEditor SCN_MARKERDELETEALL, marknum
 End Sub
 
-
-Public Sub NextBookmark()
-  NextMarker GetCurrentLine + 1, 4
-End Sub
-
-Public Sub PrevBookmark()
-  PrevMarker GetCurrentLine - 1, 4
-End Sub
-
-Public Sub ClearBookmarks()
-  DeleteAllMarkers 2
-End Sub
-
 Public Sub MarkerSet(iLine As Long, iMarkerNum As Long)
   SendEditor SCI_MARKERADD, iLine, iMarkerNum
 End Sub
 
-Public Sub SaveToFile(strFile As String)
-  Dim str As String
-  ConvertEOLMode
-  str = DirectSCI.GetText
-  WriteToFile strFile, str
-  ' Remove the modified flag from scintilla
-  DirectSCI.SetSavePoint
-  If m_ClearUndoAfterSave Then ClearUndoBuffer
+
+Public Sub MarkAll(strFind As String)
+  Dim X As Long
+  Dim g As Boolean
+  Dim bFind As Long
+  X = DirectSCI.GetCurPos
+  DirectSCI.SetSel 0, 0
+  Call SendEditor(SCI_SETTARGETSTART, 0)
+  Call SendEditor(SCI_SETTARGETEND, DirectSCI.GetTextLength)
+  bFind = DirectSCI.SearchInTarget(Len(strFind), strFind)
+  'bFind = FindText(strFind, False, False, False, False, False, False, False)
+  g = True
+  Do While bFind > 0
+
+    ' Save some time here.  Since were marking all instances if the same
+    ' string is found twice in the same line we don't need to know that.
+    ' So once we find it in a line and mark it automaticly jump to the next
+    ' line
+
+    DirectSCI.GotoPos bFind
+    MarkerSet GetCurrentLine, 2
+    DirectSCI.GotoLine GetCurrentLine + 1
+    Call SendEditor(SCI_SETTARGETSTART, DirectSCI.GetCurPos)
+    Call SendEditor(SCI_SETTARGETEND, DirectSCI.GetTextLength)
+    bFind = DirectSCI.SearchInTarget(Len(strFind), strFind)
+  Loop
+  DirectSCI.SetSel X, X
 End Sub
 
-'Private Sub StartAutoComplete(ch As Long)
-'  If Len(AutoCompleteStart) > 1 Then Exit Sub
-'  If ch = Asc(AutoCompleteStart) Then
-'    ShowAutoComplete AutoCompleteString
-'  End If
-'End Sub
+'================================[ /markers ] ==============================
 
-Public Function ConvertEOLMode()
-  SendEditor SCI_CONVERTEOLS, DirectSCI.GetEOLMode
-End Function
-
-Public Sub GotoLineColumn(iLine As Long, iCol As Long)
-  Dim i As Long
-  i = SendEditor(SCI_FINDCOLUMN, iLine, iCol)
-  DirectSCI.SetSel i, i
-End Sub
-
+'================================[ find/replace stuff ] ==============================
 Public Function ReplaceText(strSearchFor As String, strReplaceWith As String, Optional ReplaceAll As Boolean = False, Optional CaseSensative As Boolean = False, Optional WordStart As Boolean = False, Optional WholeWord As Boolean = False, Optional RegExp As Boolean = False) As Boolean
   bRepLng = True
   If FindText(strSearchFor, False, False, True, CaseSensative, WordStart, WholeWord) = True Then
@@ -1986,19 +1800,13 @@ Public Function FindText(txttofind As String, Optional FindReverse As Boolean = 
     bWrap = WrapDocument
     bCase = CaseSensative
     bWholeWord = WholeWord
-    bRegEx = RegExp
+    bRegEx = RegExp 'used in findnext
     bWordStart = WordStart
     bFindInRange = findinrng
     bFindReverse = FindReverse
     strFind = txttofind
 
 End Function
-
-Public Sub ShowAbout()
-    frmAbout.show vbModal
-    Unload frmAbout
-    Set frmAbout = Nothing
-End Sub
 
 Public Function FindNext() As Boolean
   'If no find events have occurred exit this sub or it may cause errors.
@@ -2011,283 +1819,129 @@ Public Function FindPrev() As Boolean
   FindPrev = FindText(strFind, True, bFindInRange, bWrap, bCase, bWordStart, bWholeWord, bRegEx)
 End Function
 
-
-Public Function GetLineText(ByVal lLine As Long) As String
-  'On Error Resume Next
-  Dim txt As String
-  Dim lLength As Long
-  Dim i As Long
-  Dim bByte() As Byte
-  
-  
-  lLength = SendMessage(SCI, SCI_LINELENGTH, lLine, 0)
-  lLength = lLength - 1 'By default this will tag on Chr(10) + chr(13)
-  
-  If lLength > 0 Then
-    ReDim bByte(0 To lLength)
-    SendMessage SCI, SCI_GETLINE, lLine, VarPtr(bByte(0))
-    txt = Byte2Str(bByte())
-  Else
-    txt = ""  'This line is 0 length
-  End If
-  
-  GetLineText = txt
-  
-End Function
-
 Public Sub ShowFindReplace()
   Load frmReplace
   frmReplace.LaunchReplaceForm Me
 End Sub
 
-Public Sub MarkAll(strFind As String)
-  Dim X As Long
-  Dim g As Boolean
-  Dim bFind As Long
-  X = DirectSCI.GetCurPos
-  DirectSCI.SetSel 0, 0
-  Call SendEditor(SCI_SETTARGETSTART, 0)
-  Call SendEditor(SCI_SETTARGETEND, DirectSCI.GetTextLength)
-  bFind = DirectSCI.SearchInTarget(Len(strFind), strFind)
-  'bFind = FindText(strFind, False, False, False, False, False, False, False)
-  g = True
-  Do While bFind > 0
+'================================[ /find replace stuff ] ==============================
 
-    ' Save some time here.  Since were marking all instances if the same
-    ' string is found twice in the same line we don't need to know that.
-    ' So once we find it in a line and mark it automaticly jump to the next
-    ' line
-
-    DirectSCI.GotoPos bFind
-    MarkerSet GetCurrentLine, 2
-    DirectSCI.GotoLine GetCurrentLine + 1
-    Call SendEditor(SCI_SETTARGETSTART, DirectSCI.GetCurPos)
-    Call SendEditor(SCI_SETTARGETEND, DirectSCI.GetTextLength)
-    bFind = DirectSCI.SearchInTarget(Len(strFind), strFind)
-  Loop
-  DirectSCI.SetSel X, X
+Public Sub ShowAbout()
+    frmAbout.show vbModal
+    Unload frmAbout
+    Set frmAbout = Nothing
 End Sub
 
-Public Property Get SelStart() As Long
-    SelStart = DirectSCI.GetSelectionStart
-End Property
-
-Public Property Let SelStart(ByVal New_SelStart As Long)
-    m_SelStart = New_SelStart
-    PropertyChanged "SelStart"
-    DirectSCI.SetSelectionStart New_SelStart
-End Property
-
-Public Property Get SelEnd() As Long
-    SelEnd = DirectSCI.GetSelectionEnd
-End Property
-
-Public Property Let SelEnd(ByVal New_SelEnd As Long)
-    m_SelEnd = New_SelEnd
-    PropertyChanged "SelEnd"
-    DirectSCI.SetSelectionEnd New_SelEnd
-End Property
-
-Public Property Get SelLength() As Long
+Public Sub ShowGoto()
     On Error Resume Next
-    SelLength = Len(SelText)
-End Property
+    Dim sline As Long
+    Dim line As Long
+    sline = Trim(InputBox("Goto Line:"))
+    If Len(sline) <> 0 Then
+        line = CLng(sline)
+        If Err.Number = 0 Then Me.GotoLineCentered line - 1
+    End If
+End Sub
 
-Public Property Let SelLength(vNewValue As Long)
-    On Error Resume Next
-    SelEnd = SelStart + vNewValue
-End Property
+'==============================[ private functions ]===================================
 
-Public Function GotoLine(line As Long) As Long
-  DirectSCI.GotoLine line
+Private Function ToLastSpaceCount() As Long
+  ' This function will figure out how many characters there are in the currently
+  ' selected word.  It gets the line text, finds the position of the caret in
+  ' the line text, then converts the line to a byte array to do a faster compare
+  ' till it reaches something not interpreted as a letter IE a space or a
+  ' line break.  This is kind of overly complex but seems to be faster overall
+
+  Dim L As Long, i As Long, current As Long, pos As Long, startWord As Long, iHold As Long
+  Dim str As String, bByte() As Byte, strTmp As String
+  Dim line As String
+  line = GetLineText(GetCurrentLine)
+  current = GetCaretInLine
+  startWord = current
+
+  Str2Byte line, bByte()
+
+  iHold = 0
+  While (startWord > 0) And InStr(1, CallTipWordCharacters, strTmp) > 0
+    startWord = startWord - 1
+    iHold = iHold + 1
+    If startWord >= 0 Then
+      strTmp = Chr(bByte(startWord))
+    End If
+  Wend
+  If strTmp = " " Or strTmp = "." Then iHold = iHold - 1
+  ToLastSpaceCount = iHold
 End Function
 
-Public Function GotoCol(Column As Long) As Long
-  GotoLineColumn GetCurrentLine, Column
-End Function
 
-Public Function SetFocusSci() As Long
-  DirectSCI.SetFocus
-End Function
-
-Public Function Redo() As Long
-  DirectSCI.Redo
-End Function
-
-Public Function Undo() As Long
-  DirectSCI.Undo
-End Function
-
-Public Function Cut() As Long
-  DirectSCI.Cut
-End Function
-
-Public Function Copy() As Long
-  DirectSCI.Copy
-End Function
-
-Public Function Paste() As Long
-  DirectSCI.Paste
-End Function
-
-Public Function SelectAll() As Long
-  DirectSCI.SelectAll
-End Function
-
-Public Function SelectLine() As Long
+Private Sub MaintainIndent()
+  On Error Resume Next
+  Dim g As Long
+  Dim indentAmount As Long
+  Dim lastLine As Long
   Dim curLine As Long
-  curLine = GetCurrentLine
-  DirectSCI.SetSel PositionFromLine(curLine), DirectSCI.GetLineEndPosition(curLine)
-End Function
+  g = DirectSCI.GetCurPos
+  ' Get the current line
+  curLine = GetCurrentLine + 1
+  ' Get the previous line
+  lastLine = curLine - 1
 
-Public Property Get CurrentHighlighter() As String
-  CurrentHighlighter = m_CurrentHighlighter
-End Property
-
-Public Property Let CurrentHighlighter(New_CurrentHighlighter As String)
-  m_CurrentHighlighter = New_CurrentHighlighter
-End Property
-
-Public Function GetColumn() As Long
-  GetColumn = DirectSCI.GetColumn
-End Function
-
-Public Property Get BraceMatchFore() As OLE_COLOR
-    BraceMatchFore = m_BraceMatch
-End Property
-
-Public Property Let BraceMatchFore(ByVal New_BraceMatch As OLE_COLOR)
-    m_BraceMatch = New_BraceMatch
-    PropertyChanged "BraceMatch"
-    DirectSCI.StyleSetFore 34, New_BraceMatch
-End Property
-
-Public Property Get BraceBadFore() As OLE_COLOR
-    BraceBadFore = m_BraceBad
-End Property
-
-Public Property Let BraceBadFore(ByVal New_BraceBad As OLE_COLOR)
-    m_BraceBad = New_BraceBad
-    PropertyChanged "BraceBad"
-    DirectSCI.StyleSetFore 35, New_BraceBad
-End Property
-
-Public Property Get BraceMatchBold() As Boolean
-    BraceMatchBold = m_BraceMatchBold
-End Property
-
-Public Property Let BraceMatchBold(ByVal New_BraceMatchBold As Boolean)
-    m_BraceMatchBold = New_BraceMatchBold
-    PropertyChanged "BraceMatchBold"
-    DirectSCI.StyleSetBold 35, New_BraceMatchBold
-    DirectSCI.StyleSetBold 34, New_BraceMatchBold
-End Property
-
-Public Property Get BraceMatchItalic() As Boolean
-    BraceMatchItalic = m_BraceMatchItalic
-End Property
-
-Public Property Let BraceMatchItalic(ByVal New_BraceMatchItalic As Boolean)
-    m_BraceMatchItalic = New_BraceMatchItalic
-    PropertyChanged "BraceMatchItalic"
-    DirectSCI.StyleSetItalic 35, New_BraceMatchItalic
-    DirectSCI.StyleSetItalic 34, New_BraceMatchItalic
-End Property
-
-Public Property Get BraceMatchUnderline() As Boolean
-    BraceMatchUnderline = m_BraceMatchUnderline
-End Property
-
-Public Property Let BraceMatchUnderline(ByVal New_BraceMatchUnderline As Boolean)
-    m_BraceMatchUnderline = New_BraceMatchUnderline
-    PropertyChanged "BraceMatchUnderline"
-    DirectSCI.StyleSetUnderline 35, New_BraceMatchUnderline
-    DirectSCI.StyleSetUnderline 34, New_BraceMatchUnderline
-End Property
-
-Public Property Get BraceMatchBack() As OLE_COLOR
-    BraceMatchBack = m_BraceMatchBack
-End Property
-
-Public Property Let BraceMatchBack(ByVal New_BraceMatchBack As OLE_COLOR)
-    m_BraceMatchBack = New_BraceMatchBack
-    PropertyChanged "BraceMatchBack"
-    DirectSCI.StyleSetBack 34, New_BraceMatchBack
-End Property
-
-Public Property Get BraceBadBack() As OLE_COLOR
-    BraceBadBack = m_BraceBadBack
-End Property
-
-Public Property Let BraceBadBack(ByVal New_BraceBadBack As OLE_COLOR)
-    m_BraceBadBack = New_BraceBadBack
-    PropertyChanged "BraceBadBack"
-    DirectSCI.StyleSetBack 35, New_BraceBadBack
-End Property
-
-Public Function SendEditor(ByVal Msg As Long, Optional ByVal wParam As Long = 0, Optional ByVal lParam = 0) As Long
-    If VarType(lParam) = vbString Then
-        SendEditor = SendMessageString(SCI, Msg, IIf(wParam = 0, CLng(wParam), wParam), CStr(lParam))
-    Else
-        SendEditor = SendMessage(SCI, Msg, IIf(wParam = 0, CLng(wParam), wParam), IIf(lParam = 0, CLng(lParam), lParam))
+  If GetLineText(lastLine - 1) = "" Then
+    'We can move on because in this case there is no text on the
+    'previous line.
+    Exit Sub
+  End If
+  indentAmount = 0
+  While (lastLine >= 0) And (DirectSCI.GetLineEndPosition(lastLine) - PositionFromLine(lastLine) = 0)
+    ' Loop threw the line counting spaces
+    lastLine = lastLine - 1
+    If lastLine >= 0 Then
+      indentAmount = DirectSCI.GetLineIndentation(lastLine)
     End If
-End Function
+    If indentAmount > 0 Then
+      Call DirectSCI.SetLineIndentation(curLine - 1, indentAmount)
+      Call SetCurrentPosition(GetLineIndentPosition(curLine - 1))
 
-Public Sub FoldAll()
-  Dim MaxLine As Long, LineSeek As Long
-  MaxLine = DirectSCI.GetLineCount
-  DirectSCI.Colourise 0, -1
-  For LineSeek = 0 To MaxLine - 1
-    If DirectSCI.GetFoldLevel(LineSeek) And SC_FOLDLEVELHEADERFLAG Then
-      DirectSCI.ToggleFold LineSeek
+      Call DirectSCI.SetSel(DirectSCI.GetCurPos, DirectSCI.GetCurPos)
     End If
-  Next
-  DirectSCI.ShowLines 0, 0
+  Wend
 End Sub
 
-Public Property Get codePage() As SC_CODETYPE
-    codePage = m_CodePage
-End Property
+Private Sub RemoveHotKeys()
+  ' This just removes some of the common hot keys that
+  ' could cause scintilla to interfere with the application
+  
+  'DirectSCI.ClearCmdKey Asc("A") + LShift(SCMOD_CTRL, 16) 'sel all
+  'DirectSCI.ClearCmdKey Asc("V") + LShift(SCMOD_CTRL, 16) 'paste
+  'DirectSCI.ClearCmdKey Asc("X") + LShift(SCMOD_CTRL, 16) 'cut
+  'DirectSCI.ClearCmdKey Asc("Z") + LShift(SCMOD_CTRL, 16) 'undo
+  
+  DirectSCI.ClearCmdKey Asc("Y") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("W") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("B") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("C") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("D") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("E") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("F") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("G") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("H") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("I") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("J") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("K") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("L") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("M") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("N") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("O") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("P") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("Q") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("R") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("S") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("T") + LShift(SCMOD_CTRL, 16)
+  DirectSCI.ClearCmdKey Asc("U") + LShift(SCMOD_CTRL, 16)
+   'AssignCmdKey 32 + LShift(SCMOD_CTRL, 16), SCI_AUTOCSHOW
+End Sub
 
-Public Property Let codePage(ByVal New_CodePage As SC_CODETYPE)
-    m_CodePage = New_CodePage
-    PropertyChanged "CodePage"
-    SendEditor SCI_SETCODEPAGE, New_CodePage, 0
-End Property
 
-Public Property Get MarkerBack() As OLE_COLOR   'Allows you to configure the backcolor of the folding markers.
-    MarkerBack = m_MarkerBack
-End Property
-
-Public Property Let MarkerBack(ByVal New_MarkerBack As OLE_COLOR)
-    m_MarkerBack = New_MarkerBack
-    PropertyChanged "MarkerBack"
-    DirectSCI.MarkerSetBack SC_MARKNUM_FOLDEROPEN, m_MarkerBack
-    DirectSCI.MarkerSetBack SC_MARKNUM_FOLDER, m_MarkerBack
-    DirectSCI.MarkerSetBack SC_MARKNUM_FOLDERMIDTAIL, m_MarkerBack
-    DirectSCI.MarkerSetBack SC_MARKNUM_FOLDERSUB, m_MarkerBack
-    DirectSCI.MarkerSetBack SC_MARKNUM_FOLDERTAIL, m_MarkerBack
-    DirectSCI.MarkerSetBack SC_MARKNUM_FOLDEROPEN, m_MarkerBack
-    DirectSCI.MarkerSetBack SC_MARKNUM_FOLDEROPENMID, m_MarkerBack
-    DirectSCI.MarkerSetBack SC_MARKNUM_FOLDEREND, m_MarkerBack
-End Property
-
-Public Property Get MarkerFore() As OLE_COLOR   'Allows you to configure the forecolor of the folding marker.
-    MarkerFore = m_MarkerFore
-End Property
-
-Public Property Let MarkerFore(ByVal New_MarkerFore As OLE_COLOR)
-    m_MarkerFore = New_MarkerFore
-    PropertyChanged "MarkerFore"
-    DirectSCI.MarkerSetFore SC_MARKNUM_FOLDEROPEN, m_MarkerFore
-    DirectSCI.MarkerSetFore SC_MARKNUM_FOLDER, m_MarkerFore
-    DirectSCI.MarkerSetFore SC_MARKNUM_FOLDERMIDTAIL, m_MarkerFore
-    DirectSCI.MarkerSetFore SC_MARKNUM_FOLDERSUB, m_MarkerFore
-    DirectSCI.MarkerSetFore SC_MARKNUM_FOLDERTAIL, m_MarkerFore
-    DirectSCI.MarkerSetFore SC_MARKNUM_FOLDEROPEN, m_MarkerFore
-    DirectSCI.MarkerSetFore SC_MARKNUM_FOLDEROPENMID, m_MarkerFore
-    DirectSCI.MarkerSetFore SC_MARKNUM_FOLDEREND, m_MarkerFore
-End Property
 
 
 'these would be for setting properties through the IDE to default values per instance, just do it through code
@@ -2542,26 +2196,6 @@ End Property
 '    PropertyChanged "ClearUndoAfterSave"
 'End Property
 '
-'Public Property Get BookmarkBack() As OLE_COLOR 'Allows you to configure the backcolor of the bookmark display.
-'    BookmarkBack = m_BookmarkBack
-'End Property
-'
-'Public Property Let BookmarkBack(ByVal New_BookmarkBack As OLE_COLOR)
-'    m_BookmarkBack = New_BookmarkBack
-'    PropertyChanged "BookMarkBack"
-'    DirectSCI.MarkerSetBack 1, m_BookmarkBack
-'End Property
-'
-'Public Property Get BookMarkFore() As OLE_COLOR 'Allows you to configure the forecolor of the bookmark display.
-'    BookMarkFore = m_BookMarkFore
-'End Property
-'
-'Public Property Let BookMarkFore(ByVal New_BookMarkFore As OLE_COLOR)
-'    m_BookMarkFore = New_BookMarkFore
-'    PropertyChanged "BookMarkFore"
-'    DirectSCI.MarkerSetFore 1, m_BookMarkFore
-'End Property
-'
 'Public Property Get EndAtLastLine() As Boolean  'If set to true then the document won't scroll past the last line.  If false it will allow you to scroll a bit past the end of the file.
 '    EndAtLastLine = m_EndAtLastLine
 'End Property
@@ -2682,4 +2316,41 @@ End Property
 'Public Sub TabLeft()
 '  SendEditor SCI_BACKTAB
 'End Sub
+
+'Public Property Get MarginFore() As OLE_COLOR
+'    MarginFore = m_MarginFore
+'End Property
+'
+'Public Property Let MarginFore(ByVal New_MarginFore As OLE_COLOR)
+'    m_MarginFore = New_MarginFore
+'    PropertyChanged "MarginFore"
+'End Property
+'
+'Public Property Get MarginBack() As OLE_COLOR
+'    MarginBack = m_MarginBack
+'End Property
+'
+'Public Property Let MarginBack(ByVal New_MarginBack As OLE_COLOR)
+'    m_MarginBack = New_MarginBack
+'    PropertyChanged "MarginBack"
+'End Property
+
+'This property is used for the folding gutter's back color.
+'The Hi color is the primary color, the Lo Color is the secondary color.
+'Public Property Get FoldingGutterColor(primary As Boolean) As OLE_COLOR
+'    If primary Then FoldingGutterColor = m_FoldHi Else FoldingGutterColor = mfold_lo
+'End Property
+'
+'Public Property Let FoldingGutterColor(primary As Boolean, ByVal v As OLE_COLOR)
+'
+'    If primary Then
+'        m_FoldHi = v
+'        owner.DirectSCI.SetFoldMarginHiColour True, m_FoldHi
+'    Else
+'        m_FoldLo = v
+'        DirectSCI.SetFoldMarginColour True, m_FoldLo
+'    End If
+'
+'End Property
+
 

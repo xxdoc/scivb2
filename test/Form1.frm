@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#29.0#0"; "dSCIVB.ocx"
+Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#42.0#0"; "dSCIVB.ocx"
 Begin VB.Form d 
    Caption         =   "Form1"
    ClientHeight    =   5490
@@ -102,6 +102,7 @@ Private Sub Form_Load()
         '.AutoCompleteOnCTRLSpace = False
         '.EnableArrowKeys
         '.SetFocusSci
+         
     End With
     
     
