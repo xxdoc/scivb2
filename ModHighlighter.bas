@@ -42,7 +42,7 @@ Public HCount As Integer
 
 Public Highlighters() As Highlighter ' Make it publicly exposed so the app can
                                      ' read off name's for menu's or such
-Private CurHigh As Integer
+Private CurrentHighlighter As Integer
 
 Private sBuffer As String
 Private Const ciIncriment As Integer = 15000
@@ -166,22 +166,28 @@ Public Function SetHighlighters(scisimple As scisimple, strHighlighter As String
   scisimple.DirectSCI.StyleSetUnderline 35, scisimple.BraceMatchUnderline
   scisimple.DirectSCI.StyleSetUnderline 34, scisimple.BraceMatchUnderline
   
-  CurHigh = X
+  CurrentHighlighter = X
   scisimple.DirectSCI.Colourise 0, -1
-  scisimple.CurHigh = strHighlighter
+  scisimple.CurrentHighlighter = strHighlighter
   
 End Function
 
 Public Function LoadHighlighter(strFile As String)
   Dim fFile As Integer
+  
+  If Not FileExists(strFile) Then Exit Function
+  
   fFile = FreeFile
   ReDim Preserve Highlighters(0 To HCount + 1)
+  
   Open strFile For Binary Access Read As #fFile
-    Get #fFile, , Highlighters(HCount)
-    Highlighters(HCount).strFile = strFile
+  Get #fFile, , Highlighters(HCount)
+  Highlighters(HCount).strFile = strFile
   Close #fFile
+  
   FreeFile fFile
   HCount = HCount + 1
+  
 End Function
 
 Public Sub LoadDirectory(strDir As String)
@@ -242,7 +248,7 @@ Public Function ExportToHTML2(strFile As String, scisimple As scisimple)
   Dim i As Long
   Dim strTotal As String
   Dim strStyle As String
-  CurHigh = FindHighlighter(scisimple.CurHigh)
+  CurrentHighlighter = FindHighlighter(scisimple.CurrentHighlighter)
   scisimple.DirectSCI.Colourise 0, -1
   For i = 0 To 127
     Style(i) = False
@@ -256,7 +262,7 @@ Public Function ExportToHTML2(strFile As String, scisimple As scisimple)
   strCSS = "<style type=" & """" & "text/css" & """" & ">" & vbCrLf
   For i = 0 To 127
     If Style(i) = True Then
-      With Highlighters(CurHigh)
+      With Highlighters(CurrentHighlighter)
         strCSS = strCSS & ".c" & i & " {" & vbCrLf
         If .StyleFont(i) <> "" Then
           strCSS = strCSS & "font-family: " & "'" & .StyleFont(i) & "'" & ";" & vbCrLf
@@ -452,7 +458,7 @@ Public Sub CommentBlock2(SCI As scisimple)
   lLineStart = SCI.DirectSCI.LineFromPosition(lStart)
   lLineEnd = SCI.DirectSCI.LineFromPosition(lEnd)
   strCmp = ""
-  CurHigh = FindHighlighter(SCI.CurHigh)
+  CurrentHighlighter = FindHighlighter(SCI.CurrentHighlighter)
   strCmp = SCI.SelText
   If InStr(1, strCmp, Chr(13)) > 1 Then
     If InStr(1, strCmp, Chr(10)) > 1 Then
@@ -475,13 +481,13 @@ Public Sub CommentBlock2(SCI As scisimple)
   End If
   strCmp = ""
   For i = 0 To UBound(ua)
-    strCmp = strCmp & Highlighters(CurHigh).strComment & ua(i)
+    strCmp = strCmp & Highlighters(CurrentHighlighter).strComment & ua(i)
     If i < UBound(ua) Then strCmp = strCmp & strSplit
   Next i
   If UBound(ua) > 0 Then
-    lAdd = ((UBound(ua) + 1) * Len(Highlighters(CurHigh).strComment)) ' + (Len(strSplit) * (UBound(ua) - 1))
+    lAdd = ((UBound(ua) + 1) * Len(Highlighters(CurrentHighlighter).strComment)) ' + (Len(strSplit) * (UBound(ua) - 1))
   Else
-    lAdd = Len(Highlighters(CurHigh).strComment)
+    lAdd = Len(Highlighters(CurrentHighlighter).strComment)
   End If
   SCI.DirectSCI.SetSelText strCmp
   SCI.SelStart = lStart
@@ -499,13 +505,13 @@ Public Sub UncommentBlock2(SCI As scisimple)
   Dim lStart As Long, lEnd As Long
   Dim ua() As String
   str = SCI.SelText
-  CurHigh = FindHighlighter(SCI.CurHigh)
+  CurrentHighlighter = FindHighlighter(SCI.CurrentHighlighter)
   lStart = SCI.SelStart
   lEnd = SCI.SelEnd
-  ua() = Split(str, Highlighters(CurHigh).strComment)
-  str = Replace(str, Highlighters(CurHigh).strComment, "")
+  ua() = Split(str, Highlighters(CurrentHighlighter).strComment)
+  str = Replace(str, Highlighters(CurrentHighlighter).strComment, "")
   SCI.SelText = str
-  SCI.DirectSCI.SetSel lStart, lEnd - (UBound(ua) * Len(Highlighters(CurHigh).strComment))
+  SCI.DirectSCI.SetSel lStart, lEnd - (UBound(ua) * Len(Highlighters(CurrentHighlighter).strComment))
   Erase ua()
 
 End Sub

@@ -192,7 +192,7 @@ Attribute VB_Exposed = False
 'Author:   dzzie@yahoo.com
 'Site:     http://sandsprite.com
 
-Public sci As scisimple
+Public SCI As scisimple
 Dim lastkey As Integer
 Dim lastIndex As Long
 Dim lastsearch As String
@@ -222,14 +222,14 @@ Private Sub cmdFind_Click()
         compare = vbTextCompare
     End If
     
-    X = InStr(1, sci.Text, lastsearch, compare)
+    X = InStr(1, SCI.Text, lastsearch, compare)
     If X > 0 Then
         lastIndex = X + 2
-        sci.SelStart = X - 1
-        sci.SelLength = Len(lastsearch)
-        sci.GotoLine sci.CurrentLine - 1
-        sci.SelectLine
-        Me.Caption = "Line: " & sci.CurrentLine & " CharPos: " & sci.SelStart
+        SCI.SelStart = X - 1
+        SCI.SelLength = Len(lastsearch)
+        SCI.GotoLine SCI.CurrentLine - 1
+        SCI.SelectLine
+        Me.Caption = "Line: " & SCI.CurrentLine & " CharPos: " & SCI.SelStart
     Else
         lastIndex = 1
     End If
@@ -261,7 +261,7 @@ Public Sub cmdFindAll_Click()
         compare = vbTextCompare
     End If
     
-    curIndex = sci.SelStart
+    curIndex = SCI.SelStart
     lastIndex = 1
     lastsearch = f
     X = 1
@@ -270,24 +270,24 @@ Public Sub cmdFindAll_Click()
     
     Do While X > 0
     
-        X = InStr(lastIndex, sci.Text, lastsearch, compare)
+        X = InStr(lastIndex, SCI.Text, lastsearch, compare)
     
-        If X + 2 = lastIndex Or X < 1 Or X > Len(sci.Text) Then
+        If X + 2 = lastIndex Or X < 1 Or X > Len(SCI.Text) Then
             Exit Do
         Else
             lastIndex = X + 2
-            sci.SelStart = X - 1
-            sci.SelLength = Len(lastsearch)
-            line = sci.CurrentLine
+            SCI.SelStart = X - 1
+            SCI.SelLength = Len(lastsearch)
+            line = SCI.CurrentLine
             If line = 5 Then Stop
-            txt = Replace(Trim(sci.GetLineText(line)), vbTab, Empty)
+            txt = Replace(Trim(SCI.GetLineText(line)), vbTab, Empty)
             txt = Replace(txt, vbCrLf, Empty)
             List1.AddItem (line + 1) & ": " & txt
         End If
         
     Loop
     
-    sci.SelStart = curIndex
+    SCI.SelStart = curIndex
     Me.Caption = List1.ListCount & " items found!"
     
 End Sub
@@ -306,7 +306,7 @@ Private Sub cmdFindNext_Click()
         Exit Sub
     End If
     
-    If lastIndex >= Len(sci.Text) Then
+    If lastIndex >= Len(SCI.Text) Then
         MsgBox "Reached End of text no more matches", vbInformation
         Exit Sub
     End If
@@ -319,18 +319,18 @@ Private Sub cmdFindNext_Click()
         compare = vbTextCompare
     End If
     
-    X = InStr(lastIndex, sci.Text, lastsearch, compare)
+    X = InStr(lastIndex, SCI.Text, lastsearch, compare)
     
     If X + 2 = lastIndex Or X < 1 Then
         MsgBox "No more matches found", vbInformation
         Exit Sub
     Else
         lastIndex = X + 2
-        sci.SelStart = X - 1
-        sci.SelLength = Len(lastsearch)
-        sci.GotoLine sci.CurrentLine - 1
-        sci.SelectLine
-        Me.Caption = "Line: " & sci.CurrentLine & " CharPos: " & sci.SelStart
+        SCI.SelStart = X - 1
+        SCI.SelLength = Len(lastsearch)
+        SCI.GotoLine SCI.CurrentLine - 1
+        SCI.SelectLine
+        Me.Caption = "Line: " & SCI.CurrentLine & " CharPos: " & SCI.SelStart
     End If
     
     
@@ -363,24 +363,27 @@ Private Sub Command1_Click()
     Dim curLine As Long
     
     If Option1.Value Then 'whole selection
-        curLine = sci.CurrentLine
-        sci.Text = Replace(sci.Text, f, r, , , compare)
+        curLine = SCI.CurrentLine
+        SCI.Text = Replace(SCI.Text, f, r, , , compare)
         If curLine > 0 Then o.GotoLine curLine
     Else
-        sl = sci.SelStart
-        nt = Replace(sci.SelText, f, r, , , compare)
-        sci.SelText = nt
-        sci.SelStart = sl
-        sci.SelLength = Len(nt)
+        sl = SCI.SelStart
+        nt = Replace(SCI.SelText, f, r, , , compare)
+        SCI.SelText = nt
+        SCI.SelStart = sl
+        SCI.SelLength = Len(nt)
     End If
     
-    lblSelSize = "Selection Size: " & Len(sci.SelText)
+    lblSelSize = "Selection Size: " & Len(SCI.SelText)
     
 End Sub
 
 Public Sub LaunchReplaceForm(txtObj As scisimple)
-    Set sci = txtObj
-    If Len(txtObj.SelText) > 1 Then lblSelSize = "Selection Size: " & Len(txtObj.SelText)
+    Set SCI = txtObj
+    If Len(txtObj.SelText) > 1 Then
+        lblSelSize = "Selection Size: " & Len(txtObj.SelText)
+        Text1 = txtObj.SelText
+    End If
     cmdFindAll.visible = True
     Me.show
 End Sub
@@ -391,7 +394,7 @@ End Sub
 Private Sub Form_Load()
     FormPos Me, False
     SetWindowPos Me.hwnd, HWND_TOPMOST, Me.Left / 15, Me.Top / 15, Me.Width / 15, Me.Height / 15, SWP_SHOWWINDOW
-    Text1 = GetMySetting("lastFind")
+    If Len(Text1) = 0 Then Text1 = GetMySetting("lastFind")
     Text2 = GetMySetting("lastReplace")
     If GetMySetting("wholeText", "1") = "1" Then Option1.Value = True Else Option2.Value = True
 End Sub
@@ -439,7 +442,7 @@ Private Sub List1_Click()
         tmp = List1.List(index)
         If InStr(1, tmp, ":") > 0 Then
             line = CLng(Split(tmp, ":")(0))
-            sci.GotoLineCentered line
+            SCI.GotoLineCentered line
         End If
     End If
     

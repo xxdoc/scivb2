@@ -1,6 +1,7 @@
 Attribute VB_Name = "modGeneral"
 Option Explicit
 
+'these are the default values assigned to a new control at runtime
 Public Const m_def_LineNumbers = 1
 Public Const m_def_TabWidth = 4
 Public Const m_def_CaretForeColor = vbBlack
@@ -83,7 +84,7 @@ Public Const m_def_Gutter1Width = 24
 Public Const m_def_Gutter2Type = 0
 Public Const m_def_Gutter2Width = 13
 
-Public Enum dcShiftDirection
+Private Enum dcShiftDirection
     lLeft = -1
     lRight = 0
 End Enum
@@ -92,13 +93,8 @@ Global Const LANG_US = &H409
 
 
 Public Function FileExists(strFile As String) As Boolean
-  ' This is a generic function that uses the dir command
-  ' to return a boolean value (true/false) on if a file exists.
-  If Dir(strFile) = "" Then
-    FileExists = False
-  Else
-    FileExists = True
-  End If
+  If Len(strFile) = 0 Then Exit Function
+  If Dir(strFile) <> "" Then FileExists = True
 End Function
 
 Public Function IsNumericKey(KeyAscii As Integer) As Integer
@@ -106,7 +102,7 @@ Public Function IsNumericKey(KeyAscii As Integer) As Integer
   If Not IsNumeric(Chr(KeyAscii)) And (KeyAscii <> 8) Then KeyAscii = 0
 End Function
 
-Public Function Shift(ByVal lValue As Long, ByVal lNumberOfBitsToShift As Long, ByVal lDirectionToShift As dcShiftDirection) As Long
+Private Function Shift(ByVal lValue As Long, ByVal lNumberOfBitsToShift As Long, ByVal lDirectionToShift As dcShiftDirection) As Long
 
     Const ksCallname As String = "Shift"
     On Error GoTo Procedure_Error
@@ -161,8 +157,8 @@ Public Function GetWindowCursorPos(Window As Long) As POINTAPI
   Dim rct As RECT
   GetCursorPos lP
   GetWindowRect Window, rct
-  GetWindowCursorPos.x = lP.x - rct.Left
-  If GetWindowCursorPos.x < 0 Then GetWindowCursorPos.x = 0
+  GetWindowCursorPos.X = lP.X - rct.Left
+  If GetWindowCursorPos.X < 0 Then GetWindowCursorPos.X = 0
   GetWindowCursorPos.Y = lP.Y - rct.Top
   If GetWindowCursorPos.Y < 0 Then GetWindowCursorPos.Y = 0
 End Function
@@ -284,3 +280,183 @@ Function isIDE() As Boolean
     Exit Function
 hell: isIDE = True
 End Function
+
+
+Function SortString(str As String) As String
+  Dim ua() As String, X As Long
+  ua = Split(str, " ")
+  If GetUpper(ua) <> 0 Then
+    Call ArraySortString(ua, UBound(ua) + 1)
+    SortString = ""
+    For X = 0 To UBound(ua)
+      SortString = SortString & ua(X) & " "
+    Next X
+    SortString = Left(SortString, Len(SortString) - 1)
+  End If
+End Function
+
+Sub ArraySortString(ByRef xArray() As String, ByVal xArrayCount As Long)
+
+    Dim xLong1 As Long
+    Dim xLong2 As Long
+    Dim xLong3 As Long
+    Dim xChar1 As String
+    Dim xChar2 As String
+    xArrayCount = xArrayCount - 1&
+
+
+    Do
+        xLong1 = 3 * xLong1 + 1&
+    Loop Until xLong1 > xArrayCount
+
+
+    Do
+        xLong1 = xLong1 \ 3&
+
+
+        For xLong2 = xLong1 To xArrayCount
+            xChar1 = xArray(xLong2)
+            xChar2 = UCase(xChar1)
+
+
+            For xLong3 = xLong2 - xLong1 To 0& Step -xLong1
+                If Not UCase(xArray(xLong3)) > xChar2 Then Exit For
+                xArray(xLong3 + xLong1) = xArray(xLong3)
+            Next
+
+            xArray(xLong3 + xLong1) = xChar1
+        Next
+
+    Loop Until xLong1 = 0&
+
+End Sub
+
+Function CountOccurancesOfChar(SearchText As String, SearchChar As String) As Integer
+
+    Dim lCtr As Integer
+    
+    CountOccurancesOfChar = 0
+
+    For lCtr = 1 To Len(SearchText)
+        If StrComp(Mid(SearchText, lCtr, 1), SearchChar) = 0 Then
+            CountOccurancesOfChar = CountOccurancesOfChar + 1
+        End If
+    Next
+
+End Function
+
+Function ReturnPositionOfOcurrance(SearchText As String, SearchChar As String, ByVal pPos As Integer) As Integer
+    
+    Dim lCtr As Integer
+    ReturnPositionOfOcurrance = InStr(1, SearchText, "(") + 1
+
+    If pPos <> 0 Then
+        For lCtr = InStr(1, SearchText, "(") To Len(SearchText)
+        If StrComp(Mid(SearchText, lCtr, 1), SearchChar) = 0 Then
+                ReturnPositionOfOcurrance = lCtr
+                pPos = pPos - 1
+                If pPos = 0 Then
+                    Exit Function
+                End If
+            End If
+        Next
+
+        ReturnPositionOfOcurrance = InStr(1, SearchText, ")") - 1
+
+    End If
+    
+End Function
+
+Function IsBrace(ch As Long) As Boolean
+    IsBrace = (ch = 40 Or ch = 41 Or ch = 60 Or ch = 62 Or ch = 91 Or ch = 93 Or ch = 123 Or ch = 125)
+End Function
+
+Function MatchBrace(ch As String) As String
+  If ch = "<" Then MatchBrace = ">"
+  If ch = "(" Then MatchBrace = ")"
+  If ch = "[" Then MatchBrace = "]"
+  If ch = "{" Then MatchBrace = "}"
+End Function
+
+Function APIReadFile(strFilePath As String, Optional bolAsString = True) As String
+  On Error Resume Next
+  Dim arrFileMain() As Byte
+  Dim arrFileBuffer() As Byte
+  Dim lngAllBytes As Long
+  Dim lngSize As Long, lngRet As Long
+  Dim i As Long
+  Dim lngFileHandle As Long
+  Dim ofData As OFSTRUCT
+  Const lngMaxSizeForOneStep = 1000000
+    'Prepare Arrays ==========================================================
+    ReDim arrFileMain(0)
+    ReDim arrFileBuffer(lngMaxSizeForOneStep)
+
+    'Open the two files
+    lngFileHandle = OpenFile(strFilePath, ofData, OF_READ)
+
+    'Get the file size
+    lngSize = GetFileSize(lngFileHandle, 0)
+    Do While Not UBound(arrFileMain) = lngSize - 1
+        If lngSize = 0 Then Exit Function
+
+        'Redim Array to fit a smaller file
+        lngAllBytes = UBound(arrFileMain)
+        If lngSize - lngAllBytes < lngMaxSizeForOneStep Then ReDim arrFileBuffer(lngSize - lngAllBytes - 2)
+
+        'Read from the file
+        ReadFile lngFileHandle, arrFileBuffer(0), UBound(arrFileBuffer) + 1, lngRet, ByVal 0&
+
+        'Calculate Buffer's position in Main Array
+        If lngAllBytes > 0 Then lngAllBytes = lngAllBytes + 1
+
+        'Make place for the Buffer in the Main Array
+        ReDim Preserve arrFileMain(lngAllBytes + UBound(arrFileBuffer))
+
+        'Put Buffer at end of Main Array
+        MemCopy arrFileMain(lngAllBytes), arrFileBuffer(0), UBound(arrFileBuffer) + 1
+
+        DoEvents
+
+    Loop
+
+    'Close the file
+    CloseHandle lngFileHandle
+    ReDim arrFileBuffer(0)
+
+    'Convert Main Array to String
+    APIReadFile = StrConv(arrFileMain(), vbUnicode, LANG_US)
+End Function
+
+Sub WriteToFile(strFile As String, strdata As String)
+  On Error GoTo eHandle
+  Dim i As Long
+  Dim L As Long
+  Dim hFile As Long
+  Dim bByte() As Byte
+  Str2Byte strdata, bByte()
+  L = UBound(bByte()) - 1
+  hFile = CreateFile(strFile, GENERIC_WRITE, FILE_SHARE_READ Or FILE_SHARE_WRITE, ByVal 0&, CREATE_ALWAYS, 0, 0&)
+  WriteFile hFile, bByte(0), L, 0, ByVal 0&
+  CloseHandle hFile
+  Exit Sub
+eHandle:
+  ' Just in case anything happens let's close the handle
+  CloseHandle hFile
+End Sub
+
+Sub Str2Byte(sInput As String, bOutput() As Byte) '<--probably should convert to strconv(lang_US) -dzzie
+  ' This function is used to convert strings to bytes
+  ' This comes in handy for saving the file.  It's also
+  ' useful when dealing with certain things related to
+  ' sending info to Scintilla
+
+  Dim i As Long
+  ReDim bOutput(Len(sInput))
+
+  For i = 0 To Len(sInput) - 1
+    bOutput(i) = Asc(Mid(sInput, i + 1, 1))
+  Next i
+  bOutput(UBound(bOutput)) = 0  ' Null terminated :)
+End Sub
+

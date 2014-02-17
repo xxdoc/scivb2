@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#24.0#0"; "dSCIVB.ocx"
+Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#29.0#0"; "dSCIVB.ocx"
 Begin VB.Form d 
    Caption         =   "Form1"
    ClientHeight    =   5490
@@ -10,11 +10,19 @@ Begin VB.Form d
    ScaleHeight     =   5490
    ScaleWidth      =   9945
    StartUpPosition =   2  'CenterScreen
+   Begin VB.CommandButton Command1 
+      Caption         =   "Command1"
+      Height          =   465
+      Left            =   90
+      TabIndex        =   1
+      Top             =   90
+      Width           =   1230
+   End
    Begin SCIVB_LITE.SciSimple SciSimple1 
       Height          =   3840
       Left            =   45
       TabIndex        =   0
-      Top             =   45
+      Top             =   675
       Width           =   9735
       _ExtentX        =   17171
       _ExtentY        =   6773
@@ -69,6 +77,10 @@ Public Function SaveHighlighter(strFile As String)
   FreeFile fFile
 End Function
  
+Private Sub Command1_Click()
+    SciSimple1.MarkAll "test"
+End Sub
+
 Private Sub Form_Load()
 
 '    Dim pth As String
@@ -86,6 +98,7 @@ Private Sub Form_Load()
         .WordWrap = noWrap
         .IndentationGuide = True
         .Folding = True
+        .Text = Replace("this is a simple test\nIf it were for real it would not be a test\nBut you already knew that i know\nif(a){\n  alert(2)\n}\n\nadd a dot after this: fso", "\n", vbCrLf)
         '.AutoCompleteOnCTRLSpace = False
         '.EnableArrowKeys
         '.SetFocusSci
@@ -97,8 +110,8 @@ End Sub
 
 Private Sub Form_Resize()
     On Error Resume Next
-    SciSimple1.Width = Me.Width - 240
-    SciSimple1.Height = Me.Height - 600
+    SciSimple1.Width = Me.Width - SciSimple1.Left - 240
+    SciSimple1.Height = Me.Height - SciSimple1.Top - 600
 End Sub
 
 Private Sub SciSimple1_AutoCompleteEvent(className As String)
