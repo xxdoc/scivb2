@@ -1,0 +1,14 @@
+*.obj
+*.oca
+*.exp
+*.lib
+*.pdb
+*.idb
+*.url
+*.log
+*.URL
+*.suo
+*.user
+*.ncb
+*.png
+*.gif
