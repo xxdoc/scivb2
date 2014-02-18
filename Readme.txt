@@ -47,6 +47,7 @@ Stewart		- Co-Author of SCIVB
 Stu Collier	- Co-Author of SCIVB
 Paul Caton	- Excellent subclassing threw asm class
 Steve Mcmahon	- Help plus some subclassing code used in color box.
+T De Lange      - Ariel colorbox used in hilight editor
 
 I'm sure there are some others but these are the primary people who 
 assisted in this project

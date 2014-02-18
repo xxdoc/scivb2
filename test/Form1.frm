@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#42.0#0"; "dSCIVB.ocx"
+Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#55.0#0"; "dSCIVB.ocx"
 Begin VB.Form d 
    Caption         =   "Form1"
    ClientHeight    =   5490
@@ -34,49 +34,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
  'WH_KEYBOARD_LL
- 
- 
-Private Type Highlighter
-  StyleBold(127) As Long
-  StyleItalic(127) As Long
-  StyleUnderline(127) As Long
-  StyleVisible(127) As Long
-  StyleEOLFilled(127) As Long
-  StyleFore(127) As Long
-  StyleBack(127) As Long
-  StyleSize(127) As Long
-  StyleFont(127) As String
-  StyleName(127) As String
-  Keywords(7) As String
-  strFilter As String
-  strComment As String
-  strName As String
-  iLang As Long
-  strFile As String
-End Type
-
-Private Highlighter As Highlighter
-                                     
-Public Function LoadHighlighter(strFile As String)
-  Dim fFile As Integer
-  fFile = FreeFile
-  Open strFile For Binary Access Read As #fFile
-  Get #fFile, , Highlighter
-  Close #fFile
-  FreeFile fFile
-End Function
- 
-Public Function SaveHighlighter(strFile As String)
-  On Error Resume Next
-  Dim fFile As Integer
-  fFile = FreeFile
-  Kill strFile
-  Open strFile For Binary Access Write As #fFile
-  Put #fFile, , Highlighter
-  Close #fFile
-  FreeFile fFile
-End Function
- 
+  
 Private Sub Command1_Click()
     SciSimple1.MarkAll "test"
 End Sub
