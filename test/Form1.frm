@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#55.0#0"; "dSCIVB.ocx"
+Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#64.0#0"; "dSCIVB.ocx"
 Begin VB.Form d 
    Caption         =   "Form1"
    ClientHeight    =   5490
@@ -36,7 +36,8 @@ Attribute VB_Exposed = False
  'WH_KEYBOARD_LL
   
 Private Sub Command1_Click()
-    SciSimple1.MarkAll "test"
+    Dim dlg As New CCmnDlg
+    MsgBox dlg.FolderDialog()
 End Sub
 
 Private Sub Form_Load()
@@ -53,10 +54,12 @@ Private Sub Form_Load()
 '    SaveHighlighter pth
 
     With SciSimple1
+        .codePage = SC_CP_UTF8
         .WordWrap = noWrap
-        .IndentationGuide = True
+        .showIndentationGuide = True
         .Folding = True
         .Text = Replace("this is a simple test\nIf it were for real it would not be a test\nBut you already knew that i know\nif(a){\n  alert(2)\n}\n\nadd a dot after this: fso", "\n", vbCrLf)
+        .AddAPICallTip "appendfile(blah,blah)"
         '.AutoCompleteOnCTRLSpace = False
         '.EnableArrowKeys
         '.SetFocusSci
@@ -74,12 +77,18 @@ Private Sub Form_Resize()
 End Sub
 
 Private Sub SciSimple1_AutoCompleteEvent(className As String)
-    Debug.Print "AutoCompleteEvent: " & className
     
+    Dim prevWord As String
+    prevWord = SciSimple1.PreviousWord()
     
-    If className = "fso" Then
+    Debug.Print "AutoCompleteEvent: " & curWord & " Prevword: " & prevWord
+        
+    'scintinella is smart enough to autoscroll the autocomplete list to the partial match of the curWord :)
+    'so fso.app CTRL+H will send us curword=app prevword=fso and sci will scroll to appendfile at top of list.
+    
+    If className = "fso" Or prevWord = "fso" Then
         SciSimple1.ShowAutoComplete "readfile writefile appendfile fileexists deletefile"
-    ElseIf className = "ida" Then
+    ElseIf className = "ida" Or prevWord = "ida" Then
         'do i want to break these up into smaller chunks for intellisense?
         SciSimple1.ShowAutoComplete "imagebase() loadedfile() jump patchbyte originalbyte readbyte inttohex refresh() " & _
                                "numfuncs() functionstart functionend functionname getasm instsize xrefsto " & _
@@ -88,12 +97,13 @@ Private Sub SciSimple1_AutoCompleteEvent(className As String)
                                "getcomment addcomment addcodexref adddataxref delcodexref deldataxref " & _
                                "funcindexfromva funcvabyname nextea prevea patchstring makestr makeunk " & _
                                "renamefunc decompile"
-    ElseIf className = "list" Then
+                               
+    ElseIf className = "list" Or prevWord = "list" Then
         SciSimple1.ShowAutoComplete "additem clear"
-    ElseIf className = "app" Then
+    ElseIf className = "app" Or prevWord = "app" Then
         SciSimple1.ShowAutoComplete "getclipboard setclipboard askvalue openfiledialog savefiledialog exec list benchmark enableIDADebugMessages"
     End If
-    
+        
     
 End Sub
 

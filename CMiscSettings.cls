@@ -232,7 +232,62 @@ End Property
 
 
 
- 
+ Public Function CurrentFunction()
+
+    Dim line As String
+    Dim i As Integer, i2 As Integer, X As Integer
+    line = owner.GetLineText(owner.CurrentLine())
+
+  CurrentFunction = ""
+  X = owner.GetCaretInLine
+
+  For i = X To 1 Step -1
+        If Mid(line, i, 1) = "(" Then
+            For i2 = i - 1 To 1 Step -1
+                If Mid(line, i2, 1) < 33 And CurrentFunction <> "" Then    ' ignore whitespace before (
+                    Exit For
+                Else
+                    If InStr(1, CallTipWordCharacters, Mid(line, i2, 1)) > 0 Then
+                        CurrentFunction = Mid(line, i2, 1) & CurrentFunction
+                    Else
+                        If Asc(Mid(line, i2, 1)) > 33 Then   ' not valid character (and not whitespace)
+                            Exit For
+                        End If
+                    End If
+                End If
+            Next i2
+        End If
+    
+        If CurrentFunction <> "" Then
+            Exit For
+        End If
+  Next i
+
+  ' Cant find a function going backwards - check forwards instead ?
+  If CurrentFunction = "" Then
+        For i = X To Len(line)
+            If Mid(line, i, 1) = "(" Then
+                For i2 = i - 1 To 1 Step -1
+                    If Mid(line, i2, 1) < 33 And CurrentFunction <> "" Then    ' ignore whitespace before (
+                        Exit For
+                    Else
+                        If InStr(1, CallTipWordCharacters, Mid(line, i2, 1)) > 0 Then
+                            CurrentFunction = Mid(line, i2, 1) & CurrentFunction
+                        Else
+                            If Asc(Mid(line, i2, 1)) > 33 Then   ' not valid character (and not whitespace)
+                                Exit For
+                            End If
+                        End If
+                    End If
+                Next i2
+            End If
+            If CurrentFunction <> "" Then
+                Exit For
+            End If
+        Next i
+  End If
+
+End Function
  
 
 

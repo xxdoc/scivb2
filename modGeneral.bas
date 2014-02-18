@@ -157,8 +157,8 @@ Public Function GetWindowCursorPos(Window As Long) As POINTAPI
   Dim rct As RECT
   GetCursorPos lP
   GetWindowRect Window, rct
-  GetWindowCursorPos.X = lP.X - rct.Left
-  If GetWindowCursorPos.X < 0 Then GetWindowCursorPos.X = 0
+  GetWindowCursorPos.x = lP.x - rct.Left
+  If GetWindowCursorPos.x < 0 Then GetWindowCursorPos.x = 0
   GetWindowCursorPos.Y = lP.Y - rct.Top
   If GetWindowCursorPos.Y < 0 Then GetWindowCursorPos.Y = 0
 End Function
@@ -283,14 +283,14 @@ End Function
 
 
 Function SortString(str As String) As String
-  Dim ua() As String, X As Long
+  Dim ua() As String, x As Long
   ua = Split(str, " ")
   If GetUpper(ua) <> 0 Then
     Call ArraySortString(ua, UBound(ua) + 1)
     SortString = ""
-    For X = 0 To UBound(ua)
-      SortString = SortString & ua(X) & " "
-    Next X
+    For x = 0 To UBound(ua)
+      SortString = SortString & ua(x) & " "
+    Next x
     SortString = Left(SortString, Len(SortString) - 1)
   End If
 End Function
@@ -431,3 +431,21 @@ Sub Str2Byte(sInput As String, bOutput() As Byte) '<--probably should convert to
   bOutput(UBound(bOutput)) = 0  ' Null terminated :)
 End Sub
 
+Function AryIsEmpty(ary) As Boolean
+  On Error GoTo oops
+  Dim x As Long
+    x = UBound(ary)
+    AryIsEmpty = False
+  Exit Function
+oops: AryIsEmpty = True
+End Function
+
+Sub push(ary, Value) 'this modifies parent ary object
+    On Error GoTo init
+    Dim x As Long
+    x = UBound(ary) '<-throws Error If Not initalized
+    ReDim Preserve ary(UBound(ary) + 1)
+    ary(UBound(ary)) = Value
+    Exit Sub
+init: ReDim ary(0): ary(0) = Value
+End Sub
