@@ -1,3 +1,9 @@
+
+2.19.14 
+  - I am about 50hrs invested now should be good for my needs, all the major rework is done
+  - binary compatiability set (no long term promises though still early)
+  - use runtime settings, IDE design time sets not recorded
+
 2.15.14 - dzzie@yahoo.com
 
   - removed dead code and costly features, compiled size reduced by 400k

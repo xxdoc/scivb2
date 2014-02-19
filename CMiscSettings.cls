@@ -52,6 +52,14 @@ Sub Initilize(o As scisimple)
     Set owner = o
 End Sub
 
+Public Function SendEditor(ByVal Msg As Long, Optional ByVal wParam As Long = 0, Optional ByVal lParam = 0) As Long
+    If VarType(lParam) = vbString Then
+        SendEditor = SendMessageString(owner.sciHWND, Msg, IIf(wParam = 0, CLng(wParam), wParam), CStr(lParam))
+    Else
+        SendEditor = SendMessage(owner.sciHWND, Msg, IIf(wParam = 0, CLng(wParam), wParam), IIf(lParam = 0, CLng(lParam), lParam))
+    End If
+End Function
+
 'Public Property Let CaretForeColor(ByVal New_CaretForeColor As OLE_COLOR)
 '    m_CaretForeColor = New_CaretForeColor
 '    owner.DirectSCI.SetCaretFore New_CaretForeColor

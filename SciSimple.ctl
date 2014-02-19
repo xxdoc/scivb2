@@ -454,6 +454,7 @@ Private Sub iSubclass_WndProc(ByVal bBefore As Boolean, bHandled As Boolean, lRe
 
 End Sub
 
+'this is only called from initscintinilla right now..
 Private Sub SetOptions()
 
         DirectSCI.SetCaretFore m_def_CaretForeColor
@@ -522,9 +523,6 @@ Private Sub SetOptions()
         InitFolding Folding
         
 End Sub
-
-
-
 
 Private Sub Detach()
   SC.UnSubAll
@@ -683,7 +681,7 @@ Public Property Get CurrentHighlighter() As String
   CurrentHighlighter = m_CurrentHighlighter
 End Property
 
-Public Property Let CurrentHighlighter(New_CurrentHighlighter As String)
+Friend Property Let CurrentHighlighter(New_CurrentHighlighter As String)
   m_CurrentHighlighter = New_CurrentHighlighter
 End Property
 
@@ -692,12 +690,12 @@ End Property
 '  SetHighlighters Me, HighlighterName, m_MarginBack, m_MarginFore
 'End Sub
 
-Public Sub LoadHighlighter(filePath As String, Optional andSetActive As Boolean = True)
+Public Sub LoadHighlighter(filePath As String)
   On Error Resume Next
   Dim baseName As String
   baseName = GetBaseName(filePath)
   ModHighlighter.LoadHighlighter filePath
-  If andSetActive Then SetHighlighters Me, baseName, m_MarginBack, m_MarginFore
+  SetHighlighters Me, baseName, m_MarginBack, m_MarginFore
 End Sub
 
 'Public Sub LoadHighlightersDirectory(dirPath As String)
@@ -747,9 +745,10 @@ End Property
 
 Sub GotoLineCentered(ByVal line As Long, Optional selected As Boolean = True)
     Dim mline As Long
+    line = line - 1
     mline = line - CInt(DirectSCI.LinesOnScreen / 2)
     If mline > 0 Then FirstVisibleLine = mline
-    GotoLine line - 1
+    GotoLine line
     If selected Then SelectLine
 End Sub
 
@@ -766,15 +765,6 @@ End Property
 
 Property Get VisibleLines() As Long
     VisibleLines = DirectSCI.LinesOnScreen
-End Property
-
-Property Let SelColor(X)
-    On Error Resume Next
-    DoEvents 'no way to change font color?
-End Property
-
-Property Let SelBold(X)
-    DoEvents 'not available
 End Property
 
 Public Function FolderExists(path) As Boolean
@@ -1835,7 +1825,7 @@ Public Sub ShowGoto()
     sline = Trim(InputBox("Goto Line:"))
     If Len(sline) <> 0 Then
         line = CLng(sline)
-        If Err.Number = 0 Then Me.GotoLineCentered line - 1
+        If Err.Number = 0 Then Me.GotoLineCentered line
     End If
 End Sub
 
