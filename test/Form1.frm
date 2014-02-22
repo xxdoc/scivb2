@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#72.0#0"; "scivb_lite.ocx"
+Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#73.0#0"; "scivb_lite.ocx"
 Begin VB.Form d 
    Caption         =   "Form1"
    ClientHeight    =   5490
@@ -10,6 +10,14 @@ Begin VB.Form d
    ScaleHeight     =   5490
    ScaleWidth      =   9945
    StartUpPosition =   2  'CenterScreen
+   Begin VB.CommandButton Command2 
+      Caption         =   "Command2"
+      Height          =   465
+      Left            =   1710
+      TabIndex        =   2
+      Top             =   135
+      Width           =   1410
+   End
    Begin VB.CommandButton Command1 
       Caption         =   "Command1"
       Height          =   465
@@ -33,8 +41,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
- 'WH_KEYBOARD_LL
-  
+ 
+
 Private Sub Command1_Click()
      Dim x As Long
      With SciSimple1
@@ -42,11 +50,18 @@ Private Sub Command1_Click()
         '.ReplaceAll "already", ""
         '.Text = Replace(.Text, "already", "")
         '.FirstVisibleLine = x
+     
         
-        Me.Caption = .FirstVisibleLine
+        
+                 Me.Caption = .hilightWord("test")
+                 
      End With
      
      'MsgBox x
+End Sub
+
+Private Sub Command2_Click()
+    SciSimple1.hilightClear
 End Sub
 
 Private Sub Form_Load()
@@ -125,4 +140,9 @@ End Sub
 
 Private Sub SciSimple1_OnError(Number As String, Description As String)
     MsgBox "SciSimple Error: " & Description
+End Sub
+
+Private Sub SciSimple1_MouseUp(Button As Integer, Shift As Integer, x As Long, Y As Long)
+    SciSimple1.hilightClear
+    SciSimple1.hilightWord SciSimple1.CurrentWord
 End Sub

@@ -157,8 +157,8 @@ Public Function GetWindowCursorPos(Window As Long) As POINTAPI
   Dim rct As RECT
   GetCursorPos lP
   GetWindowRect Window, rct
-  GetWindowCursorPos.X = lP.X - rct.Left
-  If GetWindowCursorPos.X < 0 Then GetWindowCursorPos.X = 0
+  GetWindowCursorPos.x = lP.x - rct.Left
+  If GetWindowCursorPos.x < 0 Then GetWindowCursorPos.x = 0
   GetWindowCursorPos.Y = lP.Y - rct.Top
   If GetWindowCursorPos.Y < 0 Then GetWindowCursorPos.Y = 0
 End Function
@@ -386,8 +386,8 @@ End Sub
 
 Function AryIsEmpty(ary) As Boolean
   On Error GoTo oops
-  Dim X As Long
-    X = UBound(ary)
+  Dim x As Long
+    x = UBound(ary)
     AryIsEmpty = False
   Exit Function
 oops: AryIsEmpty = True
@@ -395,10 +395,11 @@ End Function
 
 Sub push(ary, Value) 'this modifies parent ary object
     On Error GoTo init
-    Dim X As Long
-    X = UBound(ary) '<-throws Error If Not initalized
+    Dim x As Long
+    x = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
     ary(UBound(ary)) = Value
     Exit Sub
 init: ReDim ary(0): ary(0) = Value
 End Sub
+

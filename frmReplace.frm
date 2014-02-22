@@ -455,7 +455,7 @@ Private Sub List1_Click()
     index = ListSelIndex(List1)
     
     If index >= 0 Then
-        tmp = List1.list(index)
+        tmp = List1.List(index)
         If InStr(1, tmp, ":") > 0 Then
             line = CLng(Split(tmp, ":")(0))
             SCI.GotoLineCentered line
@@ -472,7 +472,7 @@ Private Sub mnuCopyAll_Click()
     On Error Resume Next
     Dim x As String
     For i = 0 To List1.ListCount
-        x = x & List1.list(i) & vbCrLf
+        x = x & List1.List(i) & vbCrLf
     Next
     Clipboard.Clear
     Clipboard.SetText x

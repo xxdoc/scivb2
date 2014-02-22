@@ -396,4 +396,12 @@ Public Const SQLEND = """]"
 '+--------------------------------+
 Public Const CallTipWordCharacters = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
   
-  
+Public Const SCI_INDICSETFORE = 2082
+Public Const SCI_INDICSETSTYLE = 2080
+Public Const SCI_SETINDICATORCURRENT = 2500
+Public Const SCI_INDICATORFILLRANGE = 2504
+Public Const SCI_SETSTYLING = 2033
+Public Const SCI_INDICSETUNDER = 2510
+Public Const SCI_INDICSETALPHA = 2523
+Public Const SCI_INDICATORCLEARRANGE = 2505
+Public Const SCI_INDICSETOUTLINEALPHA = 2558
