@@ -209,7 +209,7 @@ Private Sub HandleSciMsg(tHdr As NMHDR, scMsg As SCNotification)
     Dim lPos As Long
     Dim pos As Long, pos2 As Long
     
-          Select Case tHdr.Code
+    Select Case tHdr.Code
             Case SCN_MODIFIED
                                 RaiseEvent OnModified(scMsg.Position, scMsg.modificationType)
             Case 2012
@@ -297,6 +297,8 @@ Private Sub HandleSciMsg(tHdr As NMHDR, scMsg As SCNotification)
                                 End If
                                 'RaiseEvent UpdateUI
                                 
+                                
+                                
             'Case SCN_MACRORECORD
                                 '  HandleMacroCall scMsg.message, Chr(chStore)
                                 '  RaiseEvent MacroRecord(scMsg.message, wParam)
@@ -319,6 +321,7 @@ Private Sub HandleSciMsg(tHdr As NMHDR, scMsg As SCNotification)
             Case SCN_PAINTED
                                 'RaiseEvent Painted
                                 
+                                
             Case SCN_AUTOCSELECTION
                                 strTmp = String(255, " ")
                                 ConvCStringToVBString strTmp, scMsg.Text
@@ -338,7 +341,8 @@ Private Sub HandleSciMsg(tHdr As NMHDR, scMsg As SCNotification)
             Case SCN_DWELLEND
                                 'TODO
 
-          End Select
+    End Select
+    
 End Sub
 
 Private Sub iSubclass_WndProc(ByVal bBefore As Boolean, bHandled As Boolean, lReturn As Long, ByVal lng_hWnd As Long, ByVal uMsg As Long, ByVal wParam As Long, ByVal lParam As Long)
@@ -766,7 +770,17 @@ Sub GotoLineCentered(ByVal line As Long, Optional selected As Boolean = True)
 End Sub
 
 Property Get FirstVisibleLine() As Long
-    FirstVisibleLine = DirectSCI.GetFirstVisibleLine
+    'returns the displayed line index, not absolute. if word wrap is on, it will be wrong..that was hard to find!
+    
+    Dim X As Long
+    X = DirectSCI.GetFirstVisibleLine
+    
+    If Me.WordWrap Or Me.Folding Then
+        X = DirectSCI.DocLineFromVisible(X)
+    End If
+    
+    FirstVisibleLine = X
+    
 End Property
 
 Property Let FirstVisibleLine(topLine As Long)
