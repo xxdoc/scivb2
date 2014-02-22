@@ -78,9 +78,9 @@ Public Const m_def_MarkerBack = vbBlack
 Public Const m_def_MarkerFore = vbWhite
 
 Public Const m_def_Gutter0Type = 1
-Public Const m_def_Gutter0Width = 20
+Public Const m_def_Gutter0Width = 50
 Public Const m_def_Gutter1Type = 0
-Public Const m_def_Gutter1Width = 24
+Public Const m_def_Gutter1Width = 13
 Public Const m_def_Gutter2Type = 0
 Public Const m_def_Gutter2Width = 13
 
@@ -157,8 +157,8 @@ Public Function GetWindowCursorPos(Window As Long) As POINTAPI
   Dim rct As RECT
   GetCursorPos lP
   GetWindowRect Window, rct
-  GetWindowCursorPos.x = lP.x - rct.Left
-  If GetWindowCursorPos.x < 0 Then GetWindowCursorPos.x = 0
+  GetWindowCursorPos.X = lP.X - rct.Left
+  If GetWindowCursorPos.X < 0 Then GetWindowCursorPos.X = 0
   GetWindowCursorPos.Y = lP.Y - rct.Top
   If GetWindowCursorPos.Y < 0 Then GetWindowCursorPos.Y = 0
 End Function
@@ -281,56 +281,6 @@ Function isIDE() As Boolean
 hell: isIDE = True
 End Function
 
-
-Function SortString(str As String) As String
-  Dim ua() As String, x As Long
-  ua = Split(str, " ")
-  If GetUpper(ua) <> 0 Then
-    Call ArraySortString(ua, UBound(ua) + 1)
-    SortString = ""
-    For x = 0 To UBound(ua)
-      SortString = SortString & ua(x) & " "
-    Next x
-    SortString = Left(SortString, Len(SortString) - 1)
-  End If
-End Function
-
-Sub ArraySortString(ByRef xArray() As String, ByVal xArrayCount As Long)
-
-    Dim xLong1 As Long
-    Dim xLong2 As Long
-    Dim xLong3 As Long
-    Dim xChar1 As String
-    Dim xChar2 As String
-    xArrayCount = xArrayCount - 1&
-
-
-    Do
-        xLong1 = 3 * xLong1 + 1&
-    Loop Until xLong1 > xArrayCount
-
-
-    Do
-        xLong1 = xLong1 \ 3&
-
-
-        For xLong2 = xLong1 To xArrayCount
-            xChar1 = xArray(xLong2)
-            xChar2 = UCase(xChar1)
-
-
-            For xLong3 = xLong2 - xLong1 To 0& Step -xLong1
-                If Not UCase(xArray(xLong3)) > xChar2 Then Exit For
-                xArray(xLong3 + xLong1) = xArray(xLong3)
-            Next
-
-            xArray(xLong3 + xLong1) = xChar1
-        Next
-
-    Loop Until xLong1 = 0&
-
-End Sub
-
 Function CountOccurancesOfChar(SearchText As String, SearchChar As String) As Integer
 
     Dim lCtr As Integer
@@ -416,25 +366,28 @@ Function GetBaseName(path) As String
     End If
 End Function
 
-Sub Str2Byte(sInput As String, bOutput() As Byte) '<--probably should convert to strconv(lang_US) -dzzie
+Sub Str2Byte(sInput As String, bOutput() As Byte)  '<--converted to strconv(lang_US) -dzzie
   ' This function is used to convert strings to bytes
   ' This comes in handy for saving the file.  It's also
   ' useful when dealing with certain things related to
   ' sending info to Scintilla
 
-  Dim i As Long
-  ReDim bOutput(Len(sInput))
+  'always Null terminated
+  bOutput() = StrConv(sInput & Chr(0), vbFromUnicode, LANG_US)
 
-  For i = 0 To Len(sInput) - 1
-    bOutput(i) = Asc(Mid(sInput, i + 1, 1))
-  Next i
-  bOutput(UBound(bOutput)) = 0  ' Null terminated :)
+'  Dim i As Long
+'  ReDim bOutput(Len(sInput))
+'
+'  For i = 0 To Len(sInput) - 1
+'    bOutput(i) = Asc(Mid(sInput, i + 1, 1))
+'  Next i
+'  bOutput(UBound(bOutput)) = 0 'Null terminated :)
 End Sub
 
 Function AryIsEmpty(ary) As Boolean
   On Error GoTo oops
-  Dim x As Long
-    x = UBound(ary)
+  Dim X As Long
+    X = UBound(ary)
     AryIsEmpty = False
   Exit Function
 oops: AryIsEmpty = True
@@ -442,8 +395,8 @@ End Function
 
 Sub push(ary, Value) 'this modifies parent ary object
     On Error GoTo init
-    Dim x As Long
-    x = UBound(ary) '<-throws Error If Not initalized
+    Dim X As Long
+    X = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
     ary(UBound(ary)) = Value
     Exit Sub

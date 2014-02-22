@@ -1,5 +1,5 @@
 Type=Control
-Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#..\..\..\..\WINDOWS\system32\stdole2.tlb#OLE Automation
+Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\WINDOWS\system32\stdole2.tlb#OLE Automation
 Module=ModAPI; ModAPI.bas
 Module=ModSCIConst; ModSCIConst.bas
 Module=ModHighlighter; ModHighlighter.bas
@@ -11,8 +11,8 @@ Class=iSubclass; iSubclass.cls
 UserControl=SciSimple.ctl
 Form=frmReplace.frm
 Class=CMiscSettings; CMiscSettings.cls
-RelatedDoc=todo.txt
 Class=CCmnDlg; CCmnDlg.cls
+RelatedDoc=.todo.txt
 Startup="(None)"
 HelpFile=""
 Title="SCIVB"

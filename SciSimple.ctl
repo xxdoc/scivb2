@@ -8,6 +8,15 @@ Begin VB.UserControl SciSimple
    ScaleHeight     =   4800
    ScaleWidth      =   7755
    ToolboxBitmap   =   "SciSimple.ctx":0000
+   Begin VB.ListBox lstSort 
+      Height          =   450
+      Left            =   450
+      Sorted          =   -1  'True
+      TabIndex        =   0
+      Top             =   3420
+      Visible         =   0   'False
+      Width           =   1185
+   End
 End
 Attribute VB_Name = "SciSimple"
 Attribute VB_GlobalNameSpace = False
@@ -63,7 +72,7 @@ Private APIStrings() As String
 Private ActiveCallTip As Integer 'no reason for this to be global?
 
 ' EOL Style Enum  (Scintilla supports Windows, Linux and Mac Line Endings)
-Public Enum EOLStyle
+Private Enum EOLStyle
   SC_EOL_CRLF = 0                     ' CR + LF
   SC_EOL_CR = 1                       ' CR
   sc_eol_lf = 2                       ' LF
@@ -724,6 +733,10 @@ End Sub
 
 '=======================================[ general functionality ]====================================================
 
+Property Get Version() As String
+    Version = App.Major & "." & App.Minor & "." & App.Revision
+End Property
+
 'auto close braces/quotes are handled by vb code in the subclass proc...
 Public Property Get AutoCloseBraces() As Boolean    'When this is set to true braces <B>{, [, (</b> will be closed automatically.
     AutoCloseBraces = m_AutoCloseBraces
@@ -759,12 +772,20 @@ End Property
 Property Let FirstVisibleLine(topLine As Long)
 
     GotoLine topLine + DirectSCI.LinesOnScreen + 5 'go past it
-    GotoLine topLine 'now go to it and it will be topmost line..
+    GotoLine topLine   'now go to it and it will be topmost line..
     
 End Property
 
 Property Get VisibleLines() As Long
     VisibleLines = DirectSCI.LinesOnScreen
+End Property
+
+Property Get TotalLines() As Long
+    On Error Resume Next
+    Dim X As Long
+    X = UBound(Split(Me.Text, vbCrLf))
+    If X = -1 Then X = 0
+    TotalLines = X
 End Property
 
 Public Function FolderExists(path) As Boolean
@@ -1131,6 +1152,26 @@ Attribute GetCaretInLine.VB_Description = "Gets the carret offset relative to th
   GetCaretInLine = caret - lineStart
 End Function
 
+'takes a space delimited list of words and returns them alpha sorted
+'sci editor requires the strings to be case _sensitive_ sorted
+Private Function SortString(str As String) As String
+  Dim X, tmp() As String
+  On Error Resume Next
+  tmp = Split(str, " ")
+  If Not AryIsEmpty(tmp) Then
+        lstSort.Clear
+        For Each X In tmp 'list.sorted=true so it will auto sort the list for us :)
+            If Len(X) > 0 Then lstSort.AddItem X
+        Next
+        Erase tmp
+        For X = 0 To lstSort.ListCount()
+            push tmp, lstSort.List(X)
+        Next
+        SortString = Trim(Join(tmp, " "))
+  End If
+End Function
+
+
 Public Sub ShowAutoComplete(strVal As String)
   Dim i As Long
   i = ToLastSpaceCount
@@ -1155,7 +1196,7 @@ Public Function CurrentWord() As String
         ElseIf InStr(1, CallTipWordCharacters, c) > 0 Then
             newstr = c & newstr
         Else
-            If Asc(c) > 33 Then   ' not valid character (and not whitespace)
+            If Asc(c) >= 32 Then   ' not valid character (and not whitespace)
                 Exit For
             End If
         End If
@@ -1187,7 +1228,7 @@ Public Function PreviousWord() As String
         ElseIf InStr(1, CallTipWordCharacters, c) > 0 Then
             newstr = c & newstr
         Else
-            If Asc(c) > 33 Then   ' not valid character (and not whitespace)
+            If Asc(c) >= 32 Then   ' not valid character (and not whitespace)
                 Exit For
             End If
         End If
@@ -1233,21 +1274,22 @@ End Function
 
 '===========================[ call tips ] ===================================
 
-Public Function LoadCallTips(strFile As String)
+Public Function LoadCallTips(strFile As String) As Long
   Erase APIStrings  'Clear the old array
   If Not FileExists(strFile) Then Exit Function
   APIStrings = Split(ReadFile(strFile), vbCrLf)
+  LoadCallTips = UBound(APIStrings)
 End Function
 
 Public Function AddCallTip(functionPrototype As String)
     push APIStrings(), functionPrototype
 End Function
 
-Public Property Get ShowCallTips() As Boolean   'If this is set to true then calltips will be displayed.  To use this you must also use <B>LoadAPIFile</b> to load an external API file which contains simple instructions to the editor on what calltips to display.
-    ShowCallTips = m_ShowCallTips
+Public Property Get DisplayCallTips() As Boolean   'If this is set to true then calltips will be displayed.  To use this you must also use <B>LoadAPIFile</b> to load an external API file which contains simple instructions to the editor on what calltips to display.
+    DisplayCallTips = m_ShowCallTips
 End Property
 
-Public Property Let ShowCallTips(ByVal New_ShowCallTips As Boolean)
+Public Property Let DisplayCallTips(ByVal New_ShowCallTips As Boolean)
     m_ShowCallTips = New_ShowCallTips
     PropertyChanged "ShowCallTips"
     bShowCallTips = m_ShowCallTips
@@ -1805,10 +1847,13 @@ Public Function FindPrev() As Boolean
   FindPrev = FindText(strFind, True, bFindInRange, bWrap, bCase, bWordStart, bWholeWord, bRegEx)
 End Function
 
-Public Sub ShowFindReplace()
+Public Function ShowFindReplace() As Object
+  On Error Resume Next
   Load frmReplace
   frmReplace.LaunchReplaceForm Me
-End Sub
+  Set frmReplace.Icon = UserControl.Parent.Icon
+  Set ShowFindReplace = frmReplace
+End Function
 
 '================================[ /find replace stuff ] ==============================
 

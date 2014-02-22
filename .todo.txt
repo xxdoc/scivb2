@@ -1,0 +1,2 @@
+Get FirstVisibleline may be buggy test me..
+is sci.ReplaceBuggy? test
