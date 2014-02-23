@@ -40,15 +40,16 @@ Event KeyPress(Char As Long)
 Event DebugMsg(Msg As String)
 Event KeyDown(KeyCode As Long, Shift As Long)
 Event KeyUp(KeyCode As Long, Shift As Long)
+Event key(ch As Long, modifiers As Long)
 Event MouseDown(Button As Integer, Shift As Integer, x As Long, Y As Long)
 Event MouseUp(Button As Integer, Shift As Integer, x As Long, Y As Long)
-Event key(ch As Long, modifiers As Long)
 Event DoubleClick()
 Event OnModified(Position As Long, modificationType As Long)
 Event PosChanged(Position As Long)
 Event UserListSelection(listType As Long, Text As String)   'Selected AutoComplete
 Event CallTipClick(Position As Long)                        'Clicked a calltip
 Event AutoCSelection(Text As String)                        'Auto Completed selected
+
 
 '=========[ scisimple private values ]====================
 Private SCI As Long           ' hwnd for the Scintilla window
@@ -144,19 +145,19 @@ Dim m_UseTabs As Boolean
 Dim m_WordWrap As Long '0 = none, 1 = wrap, 2 = wrap char? (unused)
 Dim m_TabWidth As Long
 Dim m_EOLMode As Long
+Dim m_matchBraces
+Dim m_CurrentHighlighter As String
 
-
+'for Find/FindNext support
 Private bRegEx As Boolean
 Private bWholeWord As Boolean
-Private m_matchBraces
-Private m_CurrentHighlighter As String
-Private bWrap As Boolean
+Private bAutoSelectFinds As Boolean
 Private bWordStart As Boolean
 Private bCase As Boolean
 Private strFind As String
 Private bFindEvent As Boolean
-Private bFindInRange As Boolean
-Private bFindReverse As Boolean
+Private LastFindPos As Long
+
 Private bShowCallTips As Boolean
 Private bShowFlags As Boolean
 Private strAutoComplete As String
@@ -960,7 +961,7 @@ Public Function GotoCol(Column As Long) As Long
   GotoLineColumn CurrentLine, Column
 End Function
 
-Public Function SetFocusSci() As Long
+Public Function SetFocus() As Long
   DirectSCI.SetFocus
 End Function
 
@@ -1763,11 +1764,11 @@ Public Function ReplaceText(strSearchFor As String, _
                 
     bRepLng = True
     
-    If FindText(strSearchFor, False, False, True, CaseSensative, WordStart, WholeWord) = True Then
+    If Find(strSearchFor, 0, True, CaseSensative, WordStart, WholeWord) <> -1 Then
       DirectSCI.ReplaceSel strReplaceWith
       If ReplaceAll Then
             bRepAll = True
-            Do Until FindText(strSearchFor, False, False, True, CaseSensative, WordStart, WholeWord) = False
+            Do Until FindNext() = -1
                  DirectSCI.ReplaceSel strReplaceWith
             Loop
             bRepAll = False
@@ -1784,32 +1785,22 @@ Public Function ReplaceAll(strSearchFor As String, _
                            Optional WholeWord As Boolean = False, _
                            Optional RegExp As Boolean = False _
                     ) As Long
+Attribute ReplaceAll.VB_Description = "Does not affect current line"
                     
       ReplaceAll = 0
       Dim lval As Long
       Dim lenSearch As Long, lenReplace As Long
       Dim Find As Long
+      Dim targetstart As Long, targetend As Long, pos As Long, docLen As Long
       
       If strSearchFor = "" Then Exit Function
       
       lval = 0
-      If CaseSensative Then
-          lval = lval Or SCFIND_MATCHCASE
-      End If
+      If CaseSensative Then lval = lval Or SCFIND_MATCHCASE
+      If WordStart Then lval = lval Or SCFIND_WORDSTART
+      If WholeWord Then lval = lval Or SCFIND_WHOLEWORD
+      If RegExp Then lval = lval Or SCFIND_REGEXP
       
-      If WordStart Then
-          lval = lval Or SCFIND_WORDSTART
-      End If
-      
-      If WholeWord Then
-          lval = lval Or SCFIND_WHOLEWORD
-      End If
-      
-      If RegExp Then
-          lval = lval Or SCFIND_REGEXP
-      End If
-      
-      Dim targetstart As Long, targetend As Long, pos As Long, docLen As Long
       targetstart = 0
       docLen = DirectSCI.GetTextLength
       lenSearch = Len(strSearchFor)
@@ -1835,122 +1826,83 @@ Public Function ReplaceAll(strSearchFor As String, _
       
 End Function
 
-
-Public Function FindText(txttofind As String, _
-                        Optional FindReverse As Boolean = False, _
-                        Optional ByVal findinrng As Boolean, _
-                        Optional WrapDocument As Boolean = True, _
+Public Function FindAll(sSearch As String, _
+                        ByRef out_StartPositions() As Long, _
+                        Optional ByVal searchSelectionOnly As Boolean, _
                         Optional CaseSensative As Boolean = False, _
                         Optional WordStart As Boolean = False, _
                         Optional WholeWord As Boolean = False, _
                         Optional RegExp As Boolean = False _
-                ) As Boolean
+                ) As Long
+Attribute FindAll.VB_Description = "Returns number of indexes added to the out_StartPositions array or -1 on failure"
                 
-    Dim lval As Long, Find As Long
-    Dim targetstart As Long, targetend As Long, pos As Long
+     Dim ret() As Long
+     Dim x As Long
+     Dim hits As Long
+     
+     hits = -1
+     x = Find(sSearch, 0, False, CaseSensative, WordStart, WholeWord, RegExp)
+     
+     Do While x <> -1
+        hits = hits + 1
+        push out_StartPositions, x
+        x = FindNext()
+     Loop
+         
+     FindAll = hits
+                
+End Function
+
+Public Function Find(sSearch As String, _
+                        Optional startPos As Long = 0, _
+                        Optional autoSelect As Boolean = True, _
+                        Optional CaseSensative As Boolean = False, _
+                        Optional WordStart As Boolean = False, _
+                        Optional WholeWord As Boolean = False, _
+                        Optional RegExp As Boolean = False _
+                ) As Long
+                
+    Dim lval As Long, result As Long, targetstart As Long, targetend As Long
     
     ' Sending a null string to scintilla for the find text will cause errors!
-    If txttofind = "" Then Exit Function
+    If sSearch = "" Then Exit Function
     
-    lval = 0
-    If CaseSensative Then
-        lval = lval Or SCFIND_MATCHCASE
-    End If
-    
-    If WordStart Then
-        lval = lval Or SCFIND_WORDSTART
-    End If
-    
-    If WholeWord Then
-        lval = lval Or SCFIND_WHOLEWORD
-    End If
-    
-    If RegExp Then
-        lval = lval Or SCFIND_REGEXP
-    End If
-  
-    Call SendEditor(SCI_SETSEARCHFLAGS, lval)
-    
-    If findinrng Then
-        targetstart = SendMessage(SCI, SCI_GETSELECTIONSTART, CLng(0), CLng(0))
-        targetend = SendMessage(SCI, SCI_GETSELECTIONEND, CLng(0), CLng(0))
-    Else
-        If FindReverse = False Then
-            targetstart = SendMessage(SCI, SCI_GETSELECTIONEND, 0, 0)
-            targetend = Len(Text)
-        Else
-            targetstart = SendMessage(SCI, SCI_GETSELECTIONSTART, 0, 0)
-            targetend = 0
-        End If
-    End If
-    
-    ' Creamos una región de búsqueda (que puede ser el texto completo)
-    Call SendEditor(SCI_SETTARGETSTART, targetstart)
-    Call SendEditor(SCI_SETTARGETEND, targetend)
-    Find = SendMessageString(SCI, SCI_SEARCHINTARGET, Len(txttofind), txttofind)
-    
-    ' Seleccionamos lo que se ha encontrado
-    If Find > -1 Then
-        targetstart = SendMessage(SCI, SCI_GETTARGETSTART, CLng(0), CLng(0))
-        targetend = SendMessage(SCI, SCI_GETTARGETEND, CLng(0), CLng(0))
-        DirectSCI.SetSel targetstart, targetend
-    Else
-    
-        If WrapDocument Then
-        
-            If FindReverse = False Then
-                targetstart = 0
-                targetend = Len(Text)
-            Else
-                targetstart = Len(Text)
-                targetend = 0
-            End If
-            
-            Call SendEditor(SCI_SETTARGETSTART, targetstart)
-            Call SendEditor(SCI_SETTARGETEND, targetend)
-            Find = SendMessageString(SCI, SCI_SEARCHINTARGET, Len(txttofind), txttofind)
-            
-            If Find > -1 Then
-                targetstart = SendMessage(SCI, SCI_GETTARGETSTART, CLng(0), CLng(0))
-                targetend = SendMessage(SCI, SCI_GETTARGETEND, CLng(0), CLng(0))
-                DirectSCI.SetSel targetstart, targetend
-            End If
-            
-        End If
-        
-    End If
-
-    ' A find has been performed so now FindNext will work.
+    'these are used in findNext
     bFindEvent = True
-    If Find > -1 Then
-          FindText = True
-    Else
-          FindText = False
-    End If
-
-    ' Set the info that we've used so we findnext can send the same thing
-    ' out if called.
-
-    bWrap = WrapDocument
+    bAutoSelectFinds = autoSelect
     bCase = CaseSensative
     bWholeWord = WholeWord
-    bRegEx = RegExp 'used in findnext
+    bRegEx = RegExp
     bWordStart = WordStart
-    bFindInRange = findinrng
-    bFindReverse = FindReverse
-    strFind = txttofind
-
+    strFind = sSearch
+    
+    lval = 0
+    If CaseSensative Then lval = lval Or SCFIND_MATCHCASE
+    If WordStart Then lval = lval Or SCFIND_WORDSTART
+    If WholeWord Then lval = lval Or SCFIND_WHOLEWORD
+    If RegExp Then lval = lval Or SCFIND_REGEXP
+    
+    Call SendEditor(SCI_SETSEARCHFLAGS, lval)
+    Call SendEditor(SCI_SETTARGETSTART, startPos)
+    Call SendEditor(SCI_SETTARGETEND, DirectSCI.GetTextLength)
+    result = SendMessageString(SCI, SCI_SEARCHINTARGET, Len(sSearch), sSearch)
+    
+    If autoSelect And result > -1 Then
+        targetstart = SendMessage(SCI, SCI_GETTARGETSTART, CLng(0), CLng(0))
+        targetend = SendMessage(SCI, SCI_GETTARGETEND, CLng(0), CLng(0))      'for regex endpos != len(txttofind)
+        DirectSCI.SetSel targetstart, targetend
+    End If
+    
+    Find = result
+    LastFindPos = result + 1
+    
 End Function
 
-Public Function FindNext() As Boolean
+Public Function FindNext(Optional wrap As Boolean = False) As Long
   'If no find events have occurred exit this sub or it may cause errors.
   If bFindEvent = False Then Exit Function
-  FindNext = FindText(strFind, False, bFindInRange, bWrap, bCase, bWordStart, bWholeWord, bRegEx)
-End Function
-
-Public Function FindPrev() As Boolean
-  If bFindEvent = False Then Exit Function
-  FindPrev = FindText(strFind, True, bFindInRange, bWrap, bCase, bWordStart, bWholeWord, bRegEx)
+  If wrap And LastFindPos >= DirectSCI.GetTextLength Then LastFindPos = 0
+  FindNext = Find(strFind, LastFindPos, bAutoSelectFinds, bCase, bWordStart, bWholeWord, bRegEx)
 End Function
 
 Public Function ShowFindReplace() As Object

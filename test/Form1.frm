@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#73.0#0"; "scivb_lite.ocx"
+Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#75.0#0"; "scivb_lite.ocx"
 Begin VB.Form d 
    Caption         =   "Form1"
    ClientHeight    =   5490
@@ -44,16 +44,28 @@ Attribute VB_Exposed = False
  
 
 Private Sub Command1_Click()
-     Dim x As Long
+     Dim x
+     Dim results() As Long
+     Dim ret As String
+     Dim y
      With SciSimple1
         'x = .FirstVisibleLine
         '.ReplaceAll "already", ""
         '.Text = Replace(.Text, "already", "")
         '.FirstVisibleLine = x
      
-        
-        
-                 Me.Caption = .hilightWord("test")
+      'tested does not reset current line..
+      MsgBox .ReplaceAll("test", "blah!")
+      
+'      If .FindAll("test", results) = -1 Then
+'            MsgBox "not found!"
+'      Else
+'            For Each x In results
+'                ret = ret & x & ", "
+'            Next
+'            MsgBox UBound(results) & " hits start offsets:" & ret
+'      End If
+       
                  
      End With
      
@@ -63,6 +75,15 @@ End Sub
 Private Sub Command2_Click()
     SciSimple1.hilightClear
 End Sub
+
+Function AryIsEmpty(ary) As Boolean
+  On Error GoTo oops
+  Dim x As Long
+    x = UBound(ary)
+    AryIsEmpty = False
+  Exit Function
+oops: AryIsEmpty = True
+End Function
 
 Private Sub Form_Load()
 
@@ -142,7 +163,7 @@ Private Sub SciSimple1_OnError(Number As String, Description As String)
     MsgBox "SciSimple Error: " & Description
 End Sub
 
-Private Sub SciSimple1_MouseUp(Button As Integer, Shift As Integer, x As Long, Y As Long)
+Private Sub SciSimple1_MouseUp(Button As Integer, Shift As Integer, x As Long, y As Long)
     SciSimple1.hilightClear
-    SciSimple1.hilightWord SciSimple1.CurrentWord
+    Me.Caption = SciSimple1.hilightWord(SciSimple1.CurrentWord) & " word matches"
 End Sub
