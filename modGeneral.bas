@@ -403,3 +403,13 @@ Sub push(ary, Value) 'this modifies parent ary object
 init: ReDim ary(0): ary(0) = Value
 End Sub
 
+Function RemoveTrailingNull(v As String) As String
+    If Len(v) = 0 Then Exit Function
+    If Right(v, 1) = Chr(0) Then
+        If Len(v) = 1 Then
+            RemoveTrailingNull = Empty
+        Else
+            RemoveTrailingNull = Left(v, Len(v) - 1)
+        End If
+    End If
+End Function

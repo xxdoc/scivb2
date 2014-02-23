@@ -1008,7 +1008,7 @@ Public Property Let Text(ByVal New_Text As String)
 End Property
 
 Public Property Get SelText() As String 'Allows you to get and set the seltext of the scintilla window.
-    SelText = DirectSCI.GetSelText 'm_SelText
+    SelText = DirectSCI.GetSelText
 End Property
 
 Public Property Let SelText(ByVal New_SelText As String)

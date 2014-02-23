@@ -1,7 +1,7 @@
 ModAPI = -259, 104, 1073, 823, 
-ModSCIConst = 88, 116, 618, 478, C
+ModSCIConst = 88, 116, 618, 478, 
 ModHighlighter = 48, 22, 1323, 828, C
-modGeneral = 565, 55, 1165, 723, C
+modGeneral = 565, 55, 1165, 723, 
 frmAbout = 110, 145, 660, 510, , 44, 58, 594, 423, C
 cSubclass = 95, 25, 1187, 721, 
 cDirectSCI = 115, 145, 635, 510, 

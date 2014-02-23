@@ -746,7 +746,6 @@ Public Function GetSelectionLength() As Long
     GetSelectionLength = GetSelectionEnd - GetSelectionStart
 End Function
 
-' # Return the length of the text.
 Public Function GetSelText() As String
   Dim bByte() As Byte
   Dim lPtr As Long
@@ -756,8 +755,8 @@ Public Function GetSelText() As String
   ReDim Preserve bByte(0 To lPtr)
   SendMessage SCI, SCI_GETSELTEXT, 0, VarPtr(bByte(0))
   strTmp = ""
-  strTmp = StrConv(bByte, vbUnicode)
-  GetSelText = strTmp
+  strTmp = StrConv(bByte, vbUnicode, LANG_US)
+  GetSelText = RemoveTrailingNull(strTmp)
 End Function
 
 ' # Return the length of the text.

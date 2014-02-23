@@ -394,7 +394,7 @@ Public Const SQLEND = """]"
 '+--------------------------------+
 '| End Scintilla Constants        |
 '+--------------------------------+
-Public Const CallTipWordCharacters = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+Public Const CallTipWordCharacters = "0123456789_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
   
 Public Const SCI_INDICSETFORE = 2082
 Public Const SCI_INDICSETSTYLE = 2080

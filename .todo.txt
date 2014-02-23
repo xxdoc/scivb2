@@ -1,2 +1,2 @@
-Get FirstVisibleline may be buggy test me..
 is sci.ReplaceBuggy? test
+sample input: class.method(x). previous word here should return 'method' not blank but I would have to count [] and () and support multiple embeddings
