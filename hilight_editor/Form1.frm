@@ -10,6 +10,22 @@ Begin VB.Form Form1
    ScaleHeight     =   9750
    ScaleWidth      =   9915
    StartUpPosition =   2  'CenterScreen
+   Begin VB.TextBox txtLang 
+      BeginProperty Font 
+         Name            =   "Courier"
+         Size            =   9.75
+         Charset         =   0
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      Height          =   375
+      Left            =   6165
+      TabIndex        =   35
+      Top             =   1305
+      Width           =   600
+   End
    Begin VB.Frame Frame1 
       Caption         =   "Set all to current "
       BeginProperty Font 
@@ -415,6 +431,24 @@ Begin VB.Form Form1
       EndProperty
    End
    Begin VB.Label Label1 
+      Caption         =   "Language"
+      BeginProperty Font 
+         Name            =   "Courier"
+         Size            =   9.75
+         Charset         =   0
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      Height          =   285
+      Index           =   7
+      Left            =   5040
+      TabIndex        =   34
+      Top             =   1350
+      Width           =   1005
+   End
+   Begin VB.Label Label1 
       Caption         =   "Name:"
       Height          =   255
       Index           =   6
@@ -672,6 +706,7 @@ Private Sub cmdLoad_Click()
     txtFilter = H.strFilter
     txtComment = H.strComment
     txtName = H.strName
+    txtLang = H.iLang
     
     lv.ListItems.Clear
     lvKeyWords.ListItems.Clear

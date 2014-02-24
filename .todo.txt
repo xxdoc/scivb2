@@ -1,2 +1,3 @@
 is sci.ReplaceBuggy? test
 sample input: class.method(x). previous word here should return 'method' not blank but I would have to count [] and () and support multiple embeddings
+new SciLexer.dll imports DecodePointer from XP SP3+ making it not work on older systems..

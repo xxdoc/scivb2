@@ -10,11 +10,20 @@ Begin VB.Form d
    ScaleHeight     =   5490
    ScaleWidth      =   9945
    StartUpPosition =   2  'CenterScreen
+   Begin SCIVB_LITE.SciSimple SciSimple1 
+      Height          =   4155
+      Left            =   90
+      TabIndex        =   2
+      Top             =   765
+      Width           =   9600
+      _ExtentX        =   16933
+      _ExtentY        =   7329
+   End
    Begin VB.CommandButton Command2 
       Caption         =   "Command2"
       Height          =   465
       Left            =   1710
-      TabIndex        =   2
+      TabIndex        =   1
       Top             =   135
       Width           =   1410
    End
@@ -22,18 +31,9 @@ Begin VB.Form d
       Caption         =   "Command1"
       Height          =   465
       Left            =   90
-      TabIndex        =   1
+      TabIndex        =   0
       Top             =   90
       Width           =   1230
-   End
-   Begin SCIVB_LITE.SciSimple SciSimple1 
-      Height          =   3840
-      Left            =   45
-      TabIndex        =   0
-      Top             =   675
-      Width           =   9735
-      _ExtentX        =   17171
-      _ExtentY        =   6773
    End
 End
 Attribute VB_Name = "d"
@@ -41,6 +41,12 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+ Const SCI_SETLEXERLANGUAGE = 4006
+ Const SCI_GETLEXERLANGUAGE = 4012
+Const SCI_SETSTYLEBITS = 2090
+Const SCLEX_ERRORLIST = 10
+
+
  
 
 Private Sub Command1_Click()
@@ -48,32 +54,19 @@ Private Sub Command1_Click()
      Dim results() As Long
      Dim ret As String
      Dim y
+
      With SciSimple1
-        'x = .FirstVisibleLine
-        '.ReplaceAll "already", ""
-        '.Text = Replace(.Text, "already", "")
-        '.FirstVisibleLine = x
-     
-      'tested does not reset current line..
-      MsgBox .ReplaceAll("test", "blah!")
-      
-'      If .FindAll("test", results) = -1 Then
-'            MsgBox "not found!"
-'      Else
-'            For Each x In results
-'                ret = ret & x & ", "
-'            Next
-'            MsgBox UBound(results) & " hits start offsets:" & ret
-'      End If
-       
-                 
+        .DirectSCI.ClearDocumentStyle
+        .DirectSCI.SendEditor SCI_SETLEXERLANGUAGE, 0, "cpp"
+        .DirectSCI.SendEditor SCI_SETSTYLEBITS, 5, 0
+        .DirectSCI.SendEditor SCI_SETLEXER, SCLEX_ERRORLIST, 0
      End With
      
      'MsgBox x
 End Sub
 
 Private Sub Command2_Click()
-    SciSimple1.hilightClear
+    SciSimple1.ShowAbout
 End Sub
 
 Function AryIsEmpty(ary) As Boolean

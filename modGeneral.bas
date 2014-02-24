@@ -90,6 +90,118 @@ Private Enum dcShiftDirection
 End Enum
 
 Global Const LANG_US = &H409
+Private Declare Function GetModuleFileName Lib "kernel32" Alias "GetModuleFileNameA" (ByVal hModule As Long, ByVal lpFileName As String, ByVal nSize As Long) As Long
+Private Declare Function GetModuleHandle Lib "kernel32" Alias "GetModuleHandleA" (ByVal lpModuleName As String) As Long
+Private Declare Function GetFileVersionInfo Lib "Version.dll" Alias "GetFileVersionInfoA" (ByVal lptstrFilename As String, ByVal dwhandle As Long, ByVal dwlen As Long, lpData As Any) As Long
+Private Declare Function GetFileVersionInfoSize Lib "Version.dll" Alias "GetFileVersionInfoSizeA" (ByVal lptstrFilename As String, lpdwHandle As Long) As Long
+Private Declare Function VerQueryValue Lib "Version.dll" Alias "VerQueryValueA" (pBlock As Any, ByVal lpSubBlock As String, lplpBuffer As Any, puLen As Long) As Long
+Private Declare Sub MoveMemory Lib "kernel32" Alias "RtlMoveMemory" (Dest As Any, ByVal Source As Long, ByVal length As Long)
+Private Declare Function lstrcpy Lib "kernel32" Alias "lstrcpyA" (ByVal lpString1 As String, ByVal lpString2 As Long) As Long
+
+Public Function CompileVersionInfo() As String
+    On Error Resume Next
+    Dim dllVer As String
+    Dim dllPath As String
+    Dim ret() As String
+    
+    push ret, "scivb_lite: " & App.Major & "." & App.Minor & "." & App.Revision
+    
+    dllPath = GetLoadedSciLexerPath()
+    If FileExists(dllPath) Then
+        dllVer = GetFileVersion(dllPath)
+        If Len(dllVer) > 0 Then push ret, "SciLexer:   " & dllVer
+        push ret, "Loaded Dll: " & dllPath & " - " & FileSize(dllPath)
+        
+    Else
+        push ret, "SciLexer:   NOT FOUND!"
+    End If
+    
+    CompileVersionInfo = Join(ret, vbCrLf)
+    
+End Function
+
+Public Function FileSize(fpath As String) As String
+    Dim fsize As Long
+    Dim szName As String
+    On Error GoTo hell
+    
+    fsize = FileLen(fpath)
+    
+    szName = " bytes"
+    If fsize > 1024 Then
+        fsize = fsize / 1024
+        szName = " Kb"
+    End If
+    
+    If fsize > 1024 Then
+        fsize = fsize / 1024
+        szName = " Mb"
+    End If
+    
+    FileSize = fsize & szName
+    
+    Exit Function
+hell:
+    
+End Function
+
+
+Public Function GetLoadedSciLexerPath() As String
+     Dim h As Long, ret As String
+     ret = Space(500)
+     h = GetModuleHandle("SciLexer.dll")
+     h = GetModuleFileName(h, ret, 500)
+     If h > 0 Then ret = Mid(ret, 1, h)
+     GetLoadedSciLexerPath = ret
+End Function
+
+Public Function GetFileVersion(Optional ByVal PathWithFilename As String) As String
+    ' return file-properties of given file  (EXE , DLL , OCX)
+    'http://support.microsoft.com/default.aspx?scid=kb;en-us;160042
+    
+    If Len(PathWithFilename) = 0 Then Exit Function
+    
+    Dim lngBufferlen As Long
+    Dim lngDummy As Long
+    Dim lngRc As Long
+    Dim lngVerPointer As Long
+    Dim lngHexNumber As Long
+    Dim b() As Byte
+    Dim b2() As Byte
+    Dim strBuffer As String
+    Dim strLangCharset As String
+    Dim strTemp As String
+    Dim n As Long
+    
+    ReDim b2(500)
+    
+    lngBufferlen = GetFileVersionInfoSize(PathWithFilename, lngDummy)
+    If lngBufferlen <= 0 Then Exit Function
+    
+    ReDim b(lngBufferlen)
+    lngRc = GetFileVersionInfo(PathWithFilename, 0&, lngBufferlen, b(0))
+    If lngRc = 0 Then Exit Function
+    
+    lngRc = VerQueryValue(b(0), "\VarFileInfo\Translation", lngVerPointer, lngBufferlen)
+    If lngRc = 0 Then Exit Function
+    
+    MoveMemory b2(0), lngVerPointer, lngBufferlen
+    lngHexNumber = b2(2) + b2(3) * &H100 + b2(0) * &H10000 + b2(1) * &H1000000
+    strLangCharset = Right("0000000" & Hex(lngHexNumber), 8)
+    
+    strBuffer = String$(800, 0)
+    strTemp = "\StringFileInfo\" & strLangCharset & "\FileVersion"
+    lngRc = VerQueryValue(b(0), strTemp, lngVerPointer, lngBufferlen)
+    If lngRc = 0 Then Exit Function
+    
+    lstrcpy strBuffer, lngVerPointer
+    n = InStr(strBuffer, Chr(0)) - 1
+    If n > 0 Then
+        strBuffer = Mid$(strBuffer, 1, n)
+        GetFileVersion = strBuffer
+    End If
+   
+End Function
 
 
 Public Function FileExists(strFile As String) As Boolean
@@ -157,8 +269,8 @@ Public Function GetWindowCursorPos(Window As Long) As POINTAPI
   Dim rct As RECT
   GetCursorPos lP
   GetWindowRect Window, rct
-  GetWindowCursorPos.x = lP.x - rct.Left
-  If GetWindowCursorPos.x < 0 Then GetWindowCursorPos.x = 0
+  GetWindowCursorPos.X = lP.X - rct.Left
+  If GetWindowCursorPos.X < 0 Then GetWindowCursorPos.X = 0
   GetWindowCursorPos.Y = lP.Y - rct.Top
   If GetWindowCursorPos.Y < 0 Then GetWindowCursorPos.Y = 0
 End Function
@@ -386,8 +498,8 @@ End Sub
 
 Function AryIsEmpty(ary) As Boolean
   On Error GoTo oops
-  Dim x As Long
-    x = UBound(ary)
+  Dim X As Long
+    X = UBound(ary)
     AryIsEmpty = False
   Exit Function
 oops: AryIsEmpty = True
@@ -395,8 +507,8 @@ End Function
 
 Sub push(ary, Value) 'this modifies parent ary object
     On Error GoTo init
-    Dim x As Long
-    x = UBound(ary) '<-throws Error If Not initalized
+    Dim X As Long
+    X = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
     ary(UBound(ary)) = Value
     Exit Sub

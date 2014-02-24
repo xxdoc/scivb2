@@ -405,3 +405,28 @@ Public Const SCI_INDICSETUNDER = 2510
 Public Const SCI_INDICSETALPHA = 2523
 Public Const SCI_INDICATORCLEARRANGE = 2505
 Public Const SCI_INDICSETOUTLINEALPHA = 2558
+Public Const SCI_SETLEXERLANGUAGE = 4006
+Public Const SCI_GETLEXERLANGUAGE = 4012
+
+'so the lexer is the engine, and the highlighter is the style, you need both. The highlighter files contain the iLang set to the below
+'the dll distributed with this build has the following lexers compiled in, many more are available.
+Public Enum sciLexers
+    'SCLEX_PYTHON = 2
+    SCLEX_CPP = 3
+    'SCLEX_HTML = 4
+    'SCLEX_XML = 5
+    'SCLEX_PERL = 6
+    SCLEX_SQL = 7
+    SCLEX_VB = 8
+    SCLEX_VBSCRIPT = 28
+    SCLEX_ASM = 34
+    SCLEX_CPPNOCASE = 35
+    'SCLEX_POWERBASIC = 51
+    'SCLEX_MSSQL = 55
+    'SCLEX_AU3 = 60
+    'SCLEX_BLITZBASIC = 66
+    'SCLEX_PUREBASIC = 67
+    'SCLEX_PHPSCRIPT = 69
+    'SCLEX_FREEBASIC = 75
+    SCLEX_MYSQL = 89
+End Enum
