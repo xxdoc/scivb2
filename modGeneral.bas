@@ -1,7 +1,7 @@
 Attribute VB_Name = "modGeneral"
 Option Explicit
 
-'these are the default values assigned to a new control at runtime
+'----------------------------------- [ default sci init values ] ----------------------------------------
 Public Const m_def_LineNumbers = 1
 Public Const m_def_TabWidth = 4
 Public Const m_def_CaretForeColor = vbBlack
@@ -84,12 +84,14 @@ Public Const m_def_Gutter1Width = 13
 Public Const m_def_Gutter2Type = 0
 Public Const m_def_Gutter2Width = 13
 
+
+'----------------------------------- [ end default sci init values ] ----------------------------------------
+
 Private Enum dcShiftDirection
     lLeft = -1
     lRight = 0
 End Enum
 
-Global Const LANG_US = &H409
 Private Declare Function GetModuleFileName Lib "kernel32" Alias "GetModuleFileNameA" (ByVal hModule As Long, ByVal lpFileName As String, ByVal nSize As Long) As Long
 Private Declare Function GetModuleHandle Lib "kernel32" Alias "GetModuleHandleA" (ByVal lpModuleName As String) As Long
 Private Declare Function GetFileVersionInfo Lib "Version.dll" Alias "GetFileVersionInfoA" (ByVal lptstrFilename As String, ByVal dwhandle As Long, ByVal dwlen As Long, lpData As Any) As Long
@@ -97,48 +99,123 @@ Private Declare Function GetFileVersionInfoSize Lib "Version.dll" Alias "GetFile
 Private Declare Function VerQueryValue Lib "Version.dll" Alias "VerQueryValueA" (pBlock As Any, ByVal lpSubBlock As String, lplpBuffer As Any, puLen As Long) As Long
 Private Declare Sub MoveMemory Lib "kernel32" Alias "RtlMoveMemory" (Dest As Any, ByVal Source As Long, ByVal length As Long)
 Private Declare Function lstrcpy Lib "kernel32" Alias "lstrcpyA" (ByVal lpString1 As String, ByVal lpString2 As Long) As Long
+Public Declare Function LoadLibrary Lib "kernel32" Alias "LoadLibraryA" (ByVal lpLibFileName As String) As Long
+Public Declare Function ConvCStringToVBString Lib "kernel32" Alias "lstrcpyA" (ByVal lpsz As String, ByVal pt As Long) As Long
+Public Declare Function DefWindowProc Lib "user32" Alias "DefWindowProcA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+Public Declare Function FreeLibrary Lib "kernel32" (ByVal hLibModule As Long) As Long
+Public Declare Function CreateWindowEx Lib "user32" Alias "CreateWindowExA" (ByVal dwExStyle As Long, ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As Long, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As Long, ByVal hMenu As Long, ByVal hInstance As Long, lpParam As Any) As Long
+Public Declare Function GetKeyState Lib "user32" (ByVal nVirtKey As Long) As Integer
+Public Declare Function LockWindowUpdate Lib "user32" (ByVal hwndLock As Long) As Long
+Public Declare Function VarPtrArray Lib "msvbvm60.dll" Alias "VarPtr" (Var() As Any) As Long
+Public Declare Function GetFocus Lib "user32" () As Long
+Public Declare Function SetFocusEx Lib "user32" Alias "SetFocus" (ByVal hwnd As Long) As Long
+Public Declare Function GetParent Lib "user32" (ByVal hwnd As Long) As Long
+Public Declare Function GetAsyncKeyState Lib "user32" (ByVal vKey As Long) As Integer
+Public Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hwnd As Long, ByVal Msg As Long, ByVal wp As Long, ByVal lP As Long) As Long
+Public Declare Function SendMessage2 Lib "user32" Alias "SendMessageA" (ByVal hwnd As Long, ByVal Msg As Long, ByVal wp As Long, lP As Any) As Long
+Public Declare Function SendMessageLong Lib "user32" Alias "SendMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+Public Declare Function SendMessageString Lib "user32" Alias "SendMessageA" (ByVal hwnd As Long, ByVal Msg As Long, ByVal wp As Long, ByVal lP As Any) As Long
+Public Declare Function SetWindowPos Lib "user32" (ByVal hwnd As Long, ByVal m As Long, ByVal Left As Long, ByVal Top As Long, ByVal Width As Long, ByVal Height As Long, ByVal flags As Long) As Long
+Public Declare Function GetWindowLong Lib "user32" Alias "GetWindowLongA" (ByVal hwnd As Long, ByVal nIndex As Long) As Long
+Public Declare Function CallWindowProc Lib "user32" Alias "CallWindowProcA" (ByVal lpPrevWndFunc As Long, ByVal hwnd As Long, ByVal Msg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+Public Declare Function SetWindowLong Lib "user32" Alias "SetWindowLongA" (ByVal hwnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
+Public Declare Sub CopyMemory Lib "kernel32.dll" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal length As Long)
+Public Declare Function MulDiv Lib "kernel32" (ByVal nNumber As Long, ByVal nNumerator As Long, ByVal nDenominator As Long) As Long
+Public Declare Function SendMessageStringString Lib "user32" Alias "SendMessageA" (ByVal hwnd As Long, ByVal iMsg As Long, ByVal str1 As String, ByVal str1 As String) As Long
+Public Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
+Public Declare Sub MemCopy Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal length As Long)
+Public Declare Function ShellExecute& Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long)
 
-Public Function CompileVersionInfo(owner As scisimple) As String
+Public Const SC_CP_UTF8 = 65001
+Public Const GWL_WNDPROC = (-4)
+Public Const MK_RBUTTON = &H2
+Public Const MK_LBUTTON = &H1
+Public Const WS_VSCROLL = &H200000
+Public Const WS_HSCROLL = &H100000
+Public Const WS_CLIPCHILDREN = &H2000000
+Public Const VK_LEFT = &H25
+Public Const VK_RIGHT = &H27
+Public Const VK_HOME = &H24
+Public Const VK_DOWN = &H28
+Public Const VK_END = &H23
+Public Const VK_UP = &H26
+Public Const WM_USER As Long = &H400
+Public Const EM_FORMATRANGE As Long = WM_USER + 57
+Public Const EM_SETTARGETDEVICE As Long = WM_USER + 72
+Public Const PHYSICALOFFSETX As Long = 112
+Public Const PHYSICALOFFSETY As Long = 113
+Public Const SWP_NOMOVE = &H2
+Public Const SWP_NOSIZE = &H1
+Public Const SWP_NOZORDER = &H4
+Public Const KEY_TOGGLED As Integer = &H1
+Public Const KEY_PRESSED As Integer = &H1000
+Private Const GWL_EXSTYLE = (-20)
+Private Const WS_EX_CLIENTEDGE = &H200
+Private Const WS_EX_STATICEDGE = &H20000
+Public Const SWP_FRAMECHANGED = &H20
+Public Const SWP_NOACTIVATE = &H10
+Public Const SWP_NOOWNERZORDER As Long = &H200
+Public Const SWP_NOCOPYBITS = &H100
+Public Const MK_CONTROL = &H8
+Public Const MK_SHIFT = &H4
+Public Const VK_SHIFT = &H10&
+Public Const VK_CONTROL = &H11&
+Public Const VK_MENU = &H12& ' Alt key
+Public Const CB_FINDSTRING = &H14C
+Public Const ALL_MESSAGES = -1
+Public Const ERROR_SUCCESS = 0&
+Global Const LANG_US = &H409
+
+'Public Type tagInitCommonControlsEx
+'   lngSize As Long
+'   lngICC As Long
+'End Type
+'
+'Public Declare Function InitCommonControlsEx Lib "comctl32.dll" (iccex As tagInitCommonControlsEx) As Boolean
+'Public Const ICC_USEREX_CLASSES = &H200
+
+
+
+Public Function GetUpper(varArray As Variant) As Long
+    Dim Upper As Integer
     On Error Resume Next
-    Dim dllVer As String
-    Dim dllPath As String
-    Dim ret() As String
-    Dim hIndex As Long
-    Dim hlNames As String
-    Dim i As Long
     
-    push ret, "scivb_lite: " & App.Major & "." & App.Minor & "." & App.Revision & "  (" & FileSize(App.path & "\scivb_lite.ocx") & ")"
-    
-    dllPath = GetLoadedSciLexerPath()
-    If FileExists(dllPath) Then
-        dllVer = GetFileVersion(dllPath)
-        If Len(dllVer) > 0 Then push ret, "SciLexer:   " & dllVer & "    (" & FileSize(dllPath) & ")"
-        push ret, "SciVB Path: " & App.path
-        push ret, "Lexer Path: " & dllPath
-        
+    Upper = UBound(varArray)
+    If Err.Number Then
+         If Err.Number = 9 Then
+              Upper = 0
+         Else
+              With Err
+                   MsgBox "Error:" & .Number & "-" & .Description
+              End With
+              Exit Function
+         End If
     Else
-        push ret, "SciVB Path: " & App.path
-        push ret, "SciLexer:   NOT FOUND!"
+         Upper = UBound(varArray) + 1
     End If
     
-    push ret(), ""
-    
-    If hAryIsEmpty(Highlighters) Then
-        push ret(), "Highlighters loaded: None"
-    Else
-        For i = 0 To UBound(Highlighters)
-            hlNames = hlNames & Highlighters(i).strName & ", "
-        Next
-        hlNames = Trim(hlNames)
-        If Len(hlNames) > 1 Then hlNames = VBA.Left(hlNames, Len(hlNames) - 1)
-        push ret(), UBound(Highlighters) + 1 & " highlighter(s) loaded: " & hlNames
-        hIndex = owner.currentHighlighter
-        push ret(), "Active Highlighter: " & Highlighters(hIndex).strFile
-    End If
-    
-    CompileVersionInfo = Join(ret, vbCrLf)
-    
+    On Error GoTo 0
+    GetUpper = Upper
 End Function
+
+
+Public Function ReplaceChars(ByVal Text As String, ByVal Char As String, ReplaceChar As String) As String
+    Dim counter As Integer
+    
+    counter = 1
+    Do
+        counter = InStr(counter, Text, Char)
+        If counter <> 0 Then
+            Mid(Text, counter, Len(ReplaceChar)) = ReplaceChar
+          Else
+            ReplaceChars = Text
+            Exit Do
+        End If
+    Loop
+
+    ReplaceChars = Text
+End Function
+
 
 Public Function FileSize(fPath As String) As String
     Dim fsize As Long
@@ -282,18 +359,6 @@ Public Function GET_Y_LPARAM(ByVal lParam As Long) As Long
     GET_Y_LPARAM = CLng("&H" & Left(hexstr, 4))
 End Function
 
-' This function is utilized to return the modified position of the
-' mousecursor on a window
-Public Function GetWindowCursorPos(Window As Long) As POINTAPI
-  Dim lP As POINTAPI
-  Dim rct As RECT
-  GetCursorPos lP
-  GetWindowRect Window, rct
-  GetWindowCursorPos.x = lP.x - rct.Left
-  If GetWindowCursorPos.x < 0 Then GetWindowCursorPos.x = 0
-  GetWindowCursorPos.Y = lP.Y - rct.Top
-  If GetWindowCursorPos.Y < 0 Then GetWindowCursorPos.Y = 0
-End Function
 
 Function GetSHIFT() As Long
 
@@ -358,19 +423,9 @@ Public Function Byte2Str(bVal() As Byte) As String
   End If
 End Function
 
-Public Function ShellDocument(sDocName As String, _
-                    Optional ByVal action As String = "Open", _
-                    Optional ByVal Parameters As String = vbNullString, _
-                    Optional ByVal Directory As String = vbNullString, _
-                    Optional ByVal WindowState As StartWindowState) As Boolean
-    Dim Response
-    Response = ShellExecute(&O0, action, sDocName, Parameters, Directory, WindowState)
-    Select Case Response
-        Case Is < 33
-            ShellDocument = False
-        Case Else
-            ShellDocument = True
-    End Select
+'START_HIDDEN = 0, START_NORMAL = 4, START_MINIMIZED = 2, START_MAXIMIZED = 3
+Public Function ShellDocument(sDocName As String, Optional ByVal action As String = "Open", Optional ByVal Parameters As String = vbNullString, Optional ByVal Directory As String = vbNullString, Optional ByVal WindowState As Long = 4) As Boolean
+    If ShellExecute(&O0, action, sDocName, Parameters, Directory, WindowState) >= 33 Then ShellDocument = True
 End Function
 
 Sub SaveMySetting(key, Value)
@@ -518,8 +573,8 @@ End Sub
 
 Function AryIsEmpty(ary) As Boolean
   On Error GoTo oops
-  Dim x As Long
-    x = UBound(ary)
+  Dim X As Long
+    X = UBound(ary)
     AryIsEmpty = False
   Exit Function
 oops: AryIsEmpty = True
@@ -527,8 +582,8 @@ End Function
 
 Sub push(ary, Value) 'this modifies parent ary object
     On Error GoTo init
-    Dim x As Long
-    x = UBound(ary) '<-throws Error If Not initalized
+    Dim X As Long
+    X = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
     ary(UBound(ary)) = Value
     Exit Sub

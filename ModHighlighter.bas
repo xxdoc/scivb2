@@ -37,12 +37,62 @@ Private Type Highlighter
 End Type
 
 
-Public Highlighters() As Highlighter ' Make it publicly exposed so the app can read off name's for menu's or such
+Private Highlighters() As Highlighter 'can not be public
 
 'these are for the export to html function..they all need a redo..
 Private sBuffer As String
 Private Const ciIncriment As Integer = 15000
 Private lOffset As Long
+
+Property Get HighLightersCount() As Long
+    If hAryIsEmpty(Highlighters) Then
+        HighLightersCount = -1
+    Else
+        HighLightersCount = UBound(Highlighters)
+    End If
+End Property
+
+Public Function CompileVersionInfo(owner As scisimple) As String
+    On Error Resume Next
+    Dim dllVer As String
+    Dim dllPath As String
+    Dim ret() As String
+    Dim hIndex As Long
+    Dim hlNames As String
+    Dim i As Long
+    
+    push ret, "scivb_lite: " & App.Major & "." & App.Minor & "." & App.Revision & "  (" & FileSize(App.path & "\scivb_lite.ocx") & ")"
+    
+    dllPath = GetLoadedSciLexerPath()
+    If FileExists(dllPath) Then
+        dllVer = GetFileVersion(dllPath)
+        If Len(dllVer) > 0 Then push ret, "SciLexer:   " & dllVer & "    (" & FileSize(dllPath) & ")"
+        push ret, "SciVB Path: " & App.path
+        push ret, "Lexer Path: " & dllPath
+        
+    Else
+        push ret, "SciVB Path: " & App.path
+        push ret, "SciLexer:   NOT FOUND!"
+    End If
+    
+    push ret(), ""
+    
+    If hAryIsEmpty(Highlighters) Then
+        push ret(), "Highlighters loaded: None"
+    Else
+        For i = 0 To UBound(Highlighters)
+            hlNames = hlNames & Highlighters(i).strName & ", "
+        Next
+        hlNames = Trim(hlNames)
+        If Len(hlNames) > 1 Then hlNames = VBA.Left(hlNames, Len(hlNames) - 1)
+        push ret(), UBound(Highlighters) + 1 & " highlighter(s) loaded: " & hlNames
+        hIndex = owner.currentHighlighter
+        push ret(), "Active Highlighter: " & Highlighters(hIndex).strFile
+    End If
+    
+    CompileVersionInfo = Join(ret, vbCrLf)
+    
+End Function
 
 Private Sub ReInit()
     sBuffer = ""
@@ -218,7 +268,7 @@ hell:
     
 End Function
 
-Function hAryIsEmpty(ary() As Highlighter) As Boolean
+Private Function hAryIsEmpty(ary() As Highlighter) As Boolean
   On Error GoTo oops
   Dim X As Long
     X = UBound(ary)
