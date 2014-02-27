@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#75.0#0"; "scivb_lite.ocx"
+Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#77.0#0"; "scivb_lite.ocx"
 Begin VB.Form d 
    Caption         =   "Form1"
    ClientHeight    =   5490
@@ -50,16 +50,11 @@ Const SCLEX_ERRORLIST = 10
  
 
 Private Sub Command1_Click()
-     Dim x
-     Dim results() As Long
-     Dim ret As String
-     Dim y
+     
 
      With SciSimple1
-        .DirectSCI.ClearDocumentStyle
-        .DirectSCI.SendEditor SCI_SETLEXERLANGUAGE, 0, "cpp"
-        .DirectSCI.SendEditor SCI_SETSTYLEBITS, 5, 0
-        .DirectSCI.SendEditor SCI_SETLEXER, SCLEX_ERRORLIST, 0
+        MsgBox .LoadHighlighter("test", True)
+         
      End With
      
      'MsgBox x

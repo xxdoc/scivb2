@@ -2,24 +2,24 @@ VERSION 5.00
 Begin VB.Form frmAbout 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "About SCIVB"
-   ClientHeight    =   4095
+   ClientHeight    =   4680
    ClientLeft      =   45
    ClientTop       =   435
-   ClientWidth     =   8040
+   ClientWidth     =   8730
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   4095
-   ScaleWidth      =   8040
+   ScaleHeight     =   4680
+   ScaleWidth      =   8730
    ShowInTaskbar   =   0   'False
    StartUpPosition =   2  'CenterScreen
    Begin VB.CommandButton cmdOK 
       Caption         =   "&OK"
       Default         =   -1  'True
       Height          =   495
-      Left            =   6750
+      Left            =   7650
       TabIndex        =   2
-      Top             =   3375
+      Top             =   3960
       Width           =   975
    End
    Begin VB.TextBox txtDesc 
@@ -33,7 +33,7 @@ Begin VB.Form frmAbout
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Height          =   2430
+      Height          =   3060
       Left            =   90
       Locked          =   -1  'True
       MultiLine       =   -1  'True
@@ -41,7 +41,7 @@ Begin VB.Form frmAbout
       TabIndex        =   1
       Text            =   "frmAbout.frx":0000
       Top             =   720
-      Width           =   7710
+      Width           =   8565
    End
    Begin VB.Label lblURL 
       Caption         =   "http://www.scintilla.org"
@@ -57,10 +57,10 @@ Begin VB.Form frmAbout
       ForeColor       =   &H00FF0000&
       Height          =   240
       Index           =   1
-      Left            =   90
+      Left            =   135
       MousePointer    =   14  'Arrow and Question
       TabIndex        =   4
-      Top             =   3330
+      Top             =   3960
       Width           =   4335
    End
    Begin VB.Label lblURL 
@@ -77,10 +77,10 @@ Begin VB.Form frmAbout
       ForeColor       =   &H00FF0000&
       Height          =   240
       Index           =   0
-      Left            =   90
+      Left            =   135
       MousePointer    =   14  'Arrow and Question
       TabIndex        =   3
-      Top             =   3690
+      Top             =   4320
       Width           =   4335
    End
    Begin VB.Label lblTop 
@@ -115,22 +115,22 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Option Explicit
 
+
 Private Sub cmdOK_Click()
       Unload Me
 End Sub
 
-Private Sub Form_Load()
- 
-  
-  txtDesc = CompileVersionInfo() & vbCrLf & vbCrLf & _
+Public Function LaunchForm(owner As scisimple)
+
+     txtDesc = CompileVersionInfo(owner) & vbCrLf & vbCrLf & _
             "SCIVB is an easy to use ActiveX control that wraps Scintilla." & vbCrLf & _
             vbCrLf & _
             "Scintilla is an excellent opensource component which " & _
             "supports syntax highlighting, folding, code tips, and much more." & vbCrLf & _
             vbCrLf & _
             "SCIVB Created by Stu Collier and Stewart, mods by dzzie"
-  
-End Sub
+            
+End Function
 
  
 Private Sub lblURL_Click(index As Integer)

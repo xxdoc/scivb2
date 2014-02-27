@@ -98,34 +98,54 @@ Private Declare Function VerQueryValue Lib "Version.dll" Alias "VerQueryValueA" 
 Private Declare Sub MoveMemory Lib "kernel32" Alias "RtlMoveMemory" (Dest As Any, ByVal Source As Long, ByVal length As Long)
 Private Declare Function lstrcpy Lib "kernel32" Alias "lstrcpyA" (ByVal lpString1 As String, ByVal lpString2 As Long) As Long
 
-Public Function CompileVersionInfo() As String
+Public Function CompileVersionInfo(owner As scisimple) As String
     On Error Resume Next
     Dim dllVer As String
     Dim dllPath As String
     Dim ret() As String
+    Dim hIndex As Long
+    Dim hlNames As String
+    Dim i As Long
     
-    push ret, "scivb_lite: " & App.Major & "." & App.Minor & "." & App.Revision
+    push ret, "scivb_lite: " & App.Major & "." & App.Minor & "." & App.Revision & "  (" & FileSize(App.path & "\scivb_lite.ocx") & ")"
     
     dllPath = GetLoadedSciLexerPath()
     If FileExists(dllPath) Then
         dllVer = GetFileVersion(dllPath)
-        If Len(dllVer) > 0 Then push ret, "SciLexer:   " & dllVer
-        push ret, "Loaded Dll: " & dllPath & " - " & FileSize(dllPath)
+        If Len(dllVer) > 0 Then push ret, "SciLexer:   " & dllVer & "    (" & FileSize(dllPath) & ")"
+        push ret, "SciVB Path: " & App.path
+        push ret, "Lexer Path: " & dllPath
         
     Else
+        push ret, "SciVB Path: " & App.path
         push ret, "SciLexer:   NOT FOUND!"
+    End If
+    
+    push ret(), ""
+    
+    If hAryIsEmpty(Highlighters) Then
+        push ret(), "Highlighters loaded: None"
+    Else
+        For i = 0 To UBound(Highlighters)
+            hlNames = hlNames & Highlighters(i).strName & ", "
+        Next
+        hlNames = Trim(hlNames)
+        If Len(hlNames) > 1 Then hlNames = VBA.Left(hlNames, Len(hlNames) - 1)
+        push ret(), UBound(Highlighters) + 1 & " highlighter(s) loaded: " & hlNames
+        hIndex = owner.currentHighlighter
+        push ret(), "Active Highlighter: " & Highlighters(hIndex).strFile
     End If
     
     CompileVersionInfo = Join(ret, vbCrLf)
     
 End Function
 
-Public Function FileSize(fpath As String) As String
+Public Function FileSize(fPath As String) As String
     Dim fsize As Long
     Dim szName As String
     On Error GoTo hell
     
-    fsize = FileLen(fpath)
+    fsize = FileLen(fPath)
     
     szName = " bytes"
     If fsize > 1024 Then
@@ -269,8 +289,8 @@ Public Function GetWindowCursorPos(Window As Long) As POINTAPI
   Dim rct As RECT
   GetCursorPos lP
   GetWindowRect Window, rct
-  GetWindowCursorPos.X = lP.X - rct.Left
-  If GetWindowCursorPos.X < 0 Then GetWindowCursorPos.X = 0
+  GetWindowCursorPos.x = lP.x - rct.Left
+  If GetWindowCursorPos.x < 0 Then GetWindowCursorPos.x = 0
   GetWindowCursorPos.Y = lP.Y - rct.Top
   If GetWindowCursorPos.Y < 0 Then GetWindowCursorPos.Y = 0
 End Function
@@ -498,8 +518,8 @@ End Sub
 
 Function AryIsEmpty(ary) As Boolean
   On Error GoTo oops
-  Dim X As Long
-    X = UBound(ary)
+  Dim x As Long
+    x = UBound(ary)
     AryIsEmpty = False
   Exit Function
 oops: AryIsEmpty = True
@@ -507,8 +527,8 @@ End Function
 
 Sub push(ary, Value) 'this modifies parent ary object
     On Error GoTo init
-    Dim X As Long
-    X = UBound(ary) '<-throws Error If Not initalized
+    Dim x As Long
+    x = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
     ary(UBound(ary)) = Value
     Exit Sub

@@ -5,12 +5,18 @@ and use. The orginal project source is included as original.zip
 
 This build is generally compatiable with code written for the 
 original except for some rarely used features which have been
-removed, or moved into the misc class. In one or two instances
-a method name may have changed as well to better describe what it
-does.
+removed, or moved into the misc class. In several instances
+method names have changed to better describe what it does.
 
-Binary compatiability has not yet been set for this control. Once I 
-get a bit further along I will set it.
+The SciLexer.dll in this build has been updated to current build
+3.3.9 and recompiled so that it is compatiable with operating systems
+from Win2k forward. (no Encode/DecodePointer imports). 
+
+The following lexers have been compiled in to this build: 
+
+  asm vb vbscript sql cppnocase cpp hypertext xml phpscript
+
+More highlighter files are available in the original.zip
 
 Modification to this build by dzzie@yahoo.com
 
@@ -29,11 +35,11 @@ Credits below:
 | make use of the Scintilla Source Code component.		|
 +---------------------------------------------------------------+
 
-For those of you not already aware Scintilla is a source editing
+For those of you aware Scintilla is a source editing
 component written in C++ and wrapped in the form of a DLL.  It
 is available freely from:
 
- http://www.scintilla.org.  
+  http://www.scintilla.org  
 
 It is updated regularly with new features, bug fixes and enhancements.  
 

@@ -1,12 +1,12 @@
 ModAPI = 154, 154, 1198, 737, C
-ModSCIConst = 132, 132, 1176, 715, 
-ModHighlighter = 48, 22, 1323, 828, 
-modGeneral = 176, 176, 1220, 759, 
+ModSCIConst = 132, 132, 1176, 715, C
+ModHighlighter = 48, 22, 1323, 828, C
+modGeneral = 203, 176, 1247, 759, 
 frmAbout = 110, 110, 1299, 824, C, 491, 203, 1433, 783, C
 cSubclass = 88, 88, 1132, 671, C
 cDirectSCI = 66, 66, 1110, 649, C
 iSubclass = 44, 44, 1088, 627, C
-SciSimple = 220, 220, 1264, 803, , 132, 132, 1296, 796, C
+SciSimple = 145, 103, 1189, 686, , 132, 132, 1296, 796, C
 frmReplace = 176, 176, 1075, 716, C, 36, 35, 969, 575, C
 CMiscSettings = 22, 22, 1066, 605, C
 CCmnDlg = 0, 0, 1044, 583, C

@@ -25,7 +25,20 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 'NOTES:
 '   could it be that the forward focus = false was the cause of my arrow key problems??
-'   Available lexers compiled into _this_ scilexer dll: asm vb vbscript sql cppnocase cpp
+'   Available lexers compiled into _this_ scilexer dll:
+'           asm vb vbscript sql cppnocase cpp hypertext xml phpscript
+
+'unfortunately we currently suffer from this VB6 IDE bug with this project.
+'(Either API declares or Highlighters array?)
+'
+'http://support.microsoft.com/kb/282233
+'  BUG: Permission Denied Error Message When You Try to Recompile a Visual Basic
+'         Project with a Public UDT and Binary Compatibility
+'
+' When you open a project and do anything that uses IntelliSense,
+' you receive a "permission denied" error message when you try to recompile the project.
+' The project defines a public User Defined Type (UDT) that it uses as a parameter to a
+' public function, and binary compatibility is set.
 
 Option Explicit
 
@@ -563,10 +576,11 @@ Private Sub UserControl_Initialize()
 
         'On Error Resume Next
         
-        Dim iccex As tagInitCommonControlsEx
+        Dim iccex As tagInitCommonControlsEx 'I dont think this is required, only for themese support..
         iccex.lngSize = LenB(iccex)
         iccex.lngICC = ICC_USEREX_CLASSES
         InitCommonControlsEx iccex
+        
         'this is to prevent crash
         m_hMod = LoadLibrary("shell32.dll")
     
@@ -692,38 +706,42 @@ Private Sub UserControl_InitProperties()
 End Sub
 
 '======================================[ Hilighter code below ] =================================
-Public Property Get CurrentHighlighter() As String
-  CurrentHighlighter = m_CurrentHighlighter
+Public Property Get currentHighlighter() As String
+  currentHighlighter = m_CurrentHighlighter
 End Property
 
-Friend Property Let CurrentHighlighter(New_CurrentHighlighter As String)
+'external users can not set this, for use from modHighlighter only..
+Friend Property Let currentHighlighter(New_CurrentHighlighter As String)
   m_CurrentHighlighter = New_CurrentHighlighter
 End Property
 
-'Public Sub SetHighlighter(HighlighterName As String)
-'  If HCount = 0 Then Exit Sub
-'  SetHighlighters Me, HighlighterName, m_MarginBack, m_MarginFore
-'End Sub
+Public Function SetHighlighter(langName As String) As Boolean
+  SetHighlighter = ModHighlighter.SetHighlighter(Me, langName)
+End Function
 
-Public Sub LoadHighlighter(filePath As String)
+Public Function LoadHighlighter(filePath As String, Optional andSetActive As Boolean = True) As Boolean
   On Error Resume Next
   Dim baseName As String
   baseName = GetBaseName(filePath)
-  ModHighlighter.LoadHighlighter filePath
-  SetHighlighters Me, baseName, m_MarginBack, m_MarginFore
-End Sub
+  If Not ModHighlighter.LoadHighlighter(filePath) Then Exit Function
+  If andSetActive Then
+       If Not ModHighlighter.SetHighlighter(Me, baseName) Then Exit Function
+  End If
+  LoadHighlighter = True
+End Function
 
-'Public Sub LoadHighlightersDirectory(dirPath As String)
-'  On Error Resume Next
-'  LoadDirectory dirPath
-'End Sub
+Public Function HighlighterForExtension(fPath As String) As String
+    HighlighterForExtension = ModHighlighter.HighlighterForExtension(fPath)
+End Function
+
+Public Function LoadHighlightersDir(dirPath As String) As Long
+  On Error Resume Next
+  LoadDirectory dirPath
+  LoadHighlightersDir = UBound(Highlighters)
+End Function
 
 Public Function ExportToHTML(filePath As String) As Boolean
-  On Error GoTo errHandler
-  Call ExportToHTML2(filePath, Me)
-  Exit Function
-errHandler:
-  ExportToHTML = False
+    ExportToHTML = ExportToHTML2(filePath, Me)
 End Function
 
 Public Sub CommentBlock()
@@ -798,7 +816,7 @@ Attribute hilightWord.VB_Description = "Hilights all the instances of the search
 End Function
 
 Property Get Version() As String
-    Version = CompileVersionInfo()
+    Version = CompileVersionInfo(Me)
 End Property
 
 'auto close braces/quotes are handled by vb code in the subclass proc...
@@ -1920,6 +1938,7 @@ Public Sub ShowAbout()
     On Error Resume Next
     Load frmAbout
     Set frmAbout.Icon = UserControl.Parent.Icon
+    frmAbout.LaunchForm Me
     frmAbout.show vbModal
     Unload frmAbout
 End Sub
