@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#77.0#0"; "scivb_lite.ocx"
+Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#78.0#0"; "scivb_lite.ocx"
 Begin VB.Form d 
    Caption         =   "Form1"
    ClientHeight    =   5490
@@ -45,23 +45,44 @@ Attribute VB_Exposed = False
  Const SCI_GETLEXERLANGUAGE = 4012
 Const SCI_SETSTYLEBITS = 2090
 Const SCLEX_ERRORLIST = 10
+Private Declare Function GetTickCount Lib "kernel32" () As Long
+
+
 
 
  
 
 Private Sub Command1_Click()
      
-
+     Dim x As String
+     
      With SciSimple1
-        MsgBox .LoadHighlighter("test", True)
+        .LoadFile "D:\_ftp_root\pdf_stream_dumper\userlib.js"
+        x = .Text
+         For i = 0 To 6
+             x = x & x
+         Next
+         .Text = x
          
+         
+         'MsgBox "Loaded size= " & FileSize(Len(x))
      End With
      
      'MsgBox x
 End Sub
 
 Private Sub Command2_Click()
-    SciSimple1.ShowAbout
+    
+    Dim a As Long, b As Long
+    a = Timer
+    'a = GetTickCount
+    SciSimple1.ExportToHTML "C:\out.html"
+    b = Timer
+    'b = GetTickCount
+    
+    MsgBox b - a & " seconds"
+    
+    
 End Sub
 
 Function AryIsEmpty(ary) As Boolean
@@ -72,6 +93,33 @@ Function AryIsEmpty(ary) As Boolean
   Exit Function
 oops: AryIsEmpty = True
 End Function
+
+Public Function FileSize(bytes As Long) As String
+    Dim fsize As Long
+    Dim szName As String
+    On Error GoTo hell
+    
+    'fsize = FileLen(fPath)
+    fsize = bytes
+    
+    szName = " bytes"
+    If fsize > 1024 Then
+        fsize = fsize / 1024
+        szName = " Kb"
+    End If
+    
+    If fsize > 1024 Then
+        fsize = fsize / 1024
+        szName = " Mb"
+    End If
+    
+    FileSize = fsize & szName
+    
+    Exit Function
+hell:
+    
+End Function
+
 
 Private Sub Form_Load()
 

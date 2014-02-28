@@ -782,7 +782,7 @@ Public Function LoadHighlightersDir(dirPath As String) As Long
 End Function
 
 Public Function ExportToHTML(filePath As String) As Boolean
-    ExportToHTML = ExportToHTML2(filePath, Me)
+    ExportToHTML = ExportToHTML3(filePath, Me)
 End Function
 
 Public Sub CommentBlock()

@@ -37,12 +37,7 @@ Private Type Highlighter
 End Type
 
 
-Private Highlighters() As Highlighter 'can not be public
-
-'these are for the export to html function..they all need a redo..
-Private sBuffer As String
-Private Const ciIncriment As Integer = 15000
-Private lOffset As Long
+Private Highlighters() As Highlighter 'can not be public or IDE bug
 
 Property Get HighLightersCount() As Long
     If hAryIsEmpty(Highlighters) Then
@@ -94,32 +89,6 @@ Public Function CompileVersionInfo(owner As scisimple) As String
     
 End Function
 
-Private Sub ReInit()
-    sBuffer = ""
-    lOffset = 0
-End Sub
-
-Private Function GetString() As String
-    GetString = Left$(sBuffer, lOffset)
-    sBuffer = ""  'reset
-    lOffset = 0
-End Function
-
-Private Sub SConcat(ByRef Source As String)
-    Dim lBufferLen As Long
-    lBufferLen = Len(Source)
-    'Allocate more space in buffer if needed
-    If (lOffset + lBufferLen) >= Len(sBuffer) Then
-       If lBufferLen > lOffset Then
-          sBuffer = sBuffer & String$(lBufferLen, 0)
-       Else
-          sBuffer = sBuffer & String$(ciIncriment, 0)
-       End If
-    End If
-    Mid$(sBuffer, lOffset + 1, lBufferLen) = Source
-    lOffset = lOffset + lBufferLen
-End Sub
-'------------------------------------------------------------------
 
 Private Function FindHighlighter(strLangName As String) As Integer
   Dim i As Integer
@@ -137,12 +106,12 @@ Private Function FindHighlighter(strLangName As String) As Integer
 End Function
 
 Public Function SetHighlighter(owner As scisimple, strHighlighter As String) As Boolean
-  Dim i As Long, X As Long
+  Dim i As Long, x As Long
   
   On Error GoTo hell
   
-  X = FindHighlighter(strHighlighter)
-  If X = -1 Then Exit Function
+  x = FindHighlighter(strHighlighter)
+  If x = -1 Then Exit Function
   
   With owner
      .DirectSCI.ClearDocumentStyle
@@ -153,32 +122,32 @@ Public Function SetHighlighter(owner As scisimple, strHighlighter As String) As 
            .DirectSCI.StyleSetBits 5
      End If
      
-     .DirectSCI.SetLexer Highlighters(X).iLang
+     .DirectSCI.SetLexer Highlighters(x).iLang
      For i = 0 To 7
-           If Highlighters(X).Keywords(i) <> "" Then .DirectSCI.SetKeyWords i, Highlighters(X).Keywords(i)
+           If Highlighters(x).Keywords(i) <> "" Then .DirectSCI.SetKeyWords i, Highlighters(x).Keywords(i)
      Next i
     
-     .DirectSCI.StyleSetBack 32, Highlighters(X).StyleBack(32)
-     .DirectSCI.StyleSetFore 32, Highlighters(X).StyleFore(32)
-     .DirectSCI.StyleSetVisible 32, CLng(Highlighters(X).StyleVisible(32))
-     .DirectSCI.StyleSetEOLFilled 32, CLng(Highlighters(X).StyleEOLFilled(32))
-     .DirectSCI.StyleSetBold 32, CLng(Highlighters(X).StyleBold(32))
-     .DirectSCI.StyleSetItalic 32, CLng(Highlighters(X).StyleItalic(32))
-     .DirectSCI.StyleSetUnderline 32, CLng(Highlighters(X).StyleUnderline(32))
-     .DirectSCI.StyleSetFont 32, Highlighters(X).StyleFont(32)
-     .DirectSCI.StyleSetSize 32, Highlighters(X).StyleSize(32)
+     .DirectSCI.StyleSetBack 32, Highlighters(x).StyleBack(32)
+     .DirectSCI.StyleSetFore 32, Highlighters(x).StyleFore(32)
+     .DirectSCI.StyleSetVisible 32, CLng(Highlighters(x).StyleVisible(32))
+     .DirectSCI.StyleSetEOLFilled 32, CLng(Highlighters(x).StyleEOLFilled(32))
+     .DirectSCI.StyleSetBold 32, CLng(Highlighters(x).StyleBold(32))
+     .DirectSCI.StyleSetItalic 32, CLng(Highlighters(x).StyleItalic(32))
+     .DirectSCI.StyleSetUnderline 32, CLng(Highlighters(x).StyleUnderline(32))
+     .DirectSCI.StyleSetFont 32, Highlighters(x).StyleFont(32)
+     .DirectSCI.StyleSetSize 32, Highlighters(x).StyleSize(32)
      .DirectSCI.StyleClearAll
      
      For i = 0 To 127
-           .DirectSCI.StyleSetBold i, CLng(Highlighters(X).StyleBold(i))
-           .DirectSCI.StyleSetItalic i, CLng(Highlighters(X).StyleItalic(i))
-           .DirectSCI.StyleSetUnderline i, CLng(Highlighters(X).StyleUnderline(i))
-           .DirectSCI.StyleSetVisible i, CLng(Highlighters(X).StyleVisible(i))
-           If Highlighters(X).StyleFont(i) <> "" Then .DirectSCI.StyleSetFont i, Highlighters(X).StyleFont(i)
-           .DirectSCI.StyleSetFore i, CLng(Highlighters(X).StyleFore(i))
-           .DirectSCI.StyleSetBack i, CLng(Highlighters(X).StyleBack(i))
-           .DirectSCI.StyleSetSize i, CLng(Highlighters(X).StyleSize(i))
-           .DirectSCI.StyleSetEOLFilled i, CLng(Highlighters(X).StyleEOLFilled(i))
+           .DirectSCI.StyleSetBold i, CLng(Highlighters(x).StyleBold(i))
+           .DirectSCI.StyleSetItalic i, CLng(Highlighters(x).StyleItalic(i))
+           .DirectSCI.StyleSetUnderline i, CLng(Highlighters(x).StyleUnderline(i))
+           .DirectSCI.StyleSetVisible i, CLng(Highlighters(x).StyleVisible(i))
+           If Highlighters(x).StyleFont(i) <> "" Then .DirectSCI.StyleSetFont i, Highlighters(x).StyleFont(i)
+           .DirectSCI.StyleSetFore i, CLng(Highlighters(x).StyleFore(i))
+           .DirectSCI.StyleSetBack i, CLng(Highlighters(x).StyleBack(i))
+           .DirectSCI.StyleSetSize i, CLng(Highlighters(x).StyleSize(i))
+           .DirectSCI.StyleSetEOLFilled i, CLng(Highlighters(x).StyleEOLFilled(i))
      Next i
      
      .DirectSCI.StyleSetFore 35, .misc.BraceBadFore
@@ -249,7 +218,7 @@ End Function
 
 Public Function HighlighterForExtension(file As String) As String
     
-    Dim ext  As String, X As Long
+    Dim ext  As String, x As Long
     
     On Error GoTo hell
     If hAryIsEmpty(Highlighters) Then Exit Function
@@ -257,12 +226,12 @@ Public Function HighlighterForExtension(file As String) As String
     ext = LCase$(Mid$(file, InStrRev(file, ".") + 1, Len(file) - InStrRev(file, ".")))
     ext = "." & ext
     
-    For X = 0 To UBound(Highlighters)
-        If InStr(1, Highlighters(X).strFilter, ext) Then
-            HighlighterForExtension = Highlighters(X).strName
+    For x = 0 To UBound(Highlighters)
+        If InStr(1, Highlighters(x).strFilter, ext) Then
+            HighlighterForExtension = Highlighters(x).strName
             Exit For
         End If
-    Next X
+    Next x
     
 hell:
     
@@ -270,8 +239,8 @@ End Function
 
 Private Function hAryIsEmpty(ary() As Highlighter) As Boolean
   On Error GoTo oops
-  Dim X As Long
-    X = UBound(ary)
+  Dim x As Long
+    x = UBound(ary)
     hAryIsEmpty = False
   Exit Function
 oops: hAryIsEmpty = True
@@ -279,8 +248,8 @@ End Function
 
 Private Sub hpush(ary() As Highlighter, Value As Highlighter) 'this modifies parent ary object
     On Error GoTo init
-    Dim X As Long
-    X = UBound(ary) '<-throws Error If Not initalized
+    Dim x As Long
+    x = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
     ary(UBound(ary)) = Value
     Exit Sub
@@ -288,191 +257,113 @@ init: ReDim ary(0): ary(0) = Value
 End Sub
 
 
-
-Public Function ExportToHTML2(strFile As String, scisimple As scisimple) As Boolean
+Public Function ExportToHTML3(strFile As String, scisimple As scisimple) As Boolean
   
   On Error Resume Next
   
-  ' This function will output the source to HTML with the styling
-  ' It is far from perfect and frankly it's slower than hell if you ask me
-  ' It takes it a solid 7-8 seconds to output this file (modHighlighter.bas)
-  ' So if anyone can think of ways to improve it's speed.  At least its
-  ' better than what it initially was (about 19 seconds for this file)
-  ' thanks to a simple concatation function and comparing the long value's
-  ' of the characters in question instead of a string to string comparison.
-  ' but otherwise still slow :)
+  'this function can process a 725kb file in 2 seconds on a 2.2ghz XP machine running from IDE with a doevents every 100 chars
+  'original took 15 seconds
   
   Dim iLen As Long
-  Dim strOutput As String
-  Dim strCSS As String
+  Dim strHeader As String
+  Dim tmp As String
+  Dim strStyle As String
   Dim lPrevStyle As Long
   Dim lStyle As Long
   Dim Style(127) As Boolean
-  Dim prevStyle As Long
+  Dim newStyle As Long
   Dim curStyle As Long
-  Dim nextStyle As Long
   Dim i As Long
-  Dim strTotal As String
-  Dim strStyle As String
   Dim currentHighlighter As Integer
+  Dim hFile As Long
   
   currentHighlighter = FindHighlighter(scisimple.currentHighlighter)
   If currentHighlighter = -1 Then Exit Function
   
   scisimple.DirectSCI.Colourise 0, -1
   
-  For i = 0 To 127
-        Style(i) = False
-  Next i
-  
-  For i = 0 To Len(scisimple.Text)
-        lStyle = scisimple.DirectSCI.GetStyleAt(i)
-        Style(lStyle) = True
-  Next
-  
-  strCSS = ""
-  strTotal = "<HTML>" & vbCrLf & "  <HEAD>" & vbCrLf & "    <Meta Generator=" & """" & "scisimple Class (http://www.ceditmx.com)" & """" & ">" & vbCrLf
-  strCSS = "<style type=" & """" & "text/css" & """" & ">" & vbCrLf
+  strHeader = "<HTML>" & vbCrLf & "  <HEAD>" & vbCrLf & "    <Meta Generator=" & """" & "scisimple Class (http://www.ceditmx.com)" & """" & ">" & vbCrLf & _
+              "<style type=" & """" & "text/css" & """" & ">" & vbCrLf
   
   For i = 0 To 127
-    If Style(i) = True Then
-        With Highlighters(currentHighlighter)
-            strCSS = strCSS & ".c" & i & " {" & vbCrLf
+      With Highlighters(currentHighlighter)
+            tmp = ".c" & i & " {" & vbCrLf
             
-            If .StyleFont(i) <> "" Then
-                strCSS = strCSS & "font-family: " & "'" & .StyleFont(i) & "'" & ";" & vbCrLf
-            End If
-            
-            If .StyleFore(i) <> 0 Then
-                strCSS = strCSS & "color: " & DectoHex(.StyleFore(i)) & ";" & vbCrLf
-            End If
-            
-            If .StyleBack(i) <> 0 Then
-                strCSS = strCSS & "background: " & DectoHex(.StyleBack(i)) & ";" & vbCrLf
-            End If
-            
-            If .StyleSize(i) <> 0 Then
-                strCSS = strCSS & "font-size: " & .StyleSize(i) & "pt" & ";" & vbCrLf
-            End If
-            
-            If .StyleBold(i) = 0 Then
-                 strCSS = strCSS & "font-weight: 400;" & vbCrLf
-            Else
-                strCSS = strCSS & "font-weight: 700;" & vbCrLf
-            End If
+            tmp = tmp & "font-weight: " & IIf(.StyleBold(i), 700, 400) & ";" & vbCrLf
+            If .StyleFont(i) <> "" Then tmp = tmp & "font-family: " & "'" & .StyleFont(i) & "'" & ";" & vbCrLf
+            If .StyleFore(i) <> 0 Then tmp = tmp & "color: " & DectoHex(.StyleFore(i)) & ";" & vbCrLf
+            If .StyleBack(i) <> 0 Then tmp = tmp & "background: " & DectoHex(.StyleBack(i)) & ";" & vbCrLf
+            If .StyleSize(i) <> 0 Then tmp = tmp & "font-size: " & .StyleSize(i) & "pt" & ";" & vbCrLf
             
             strStyle = ""
-            If .StyleItalic(i) <> 0 Then
-                strStyle = "text-decoration: italic;"
-            End If
-            
+            If .StyleItalic(i) <> 0 Then strStyle = "text-decoration: italic;"
+ 
             If .StyleUnderline(i) <> 0 Then
-              If strStyle = "" Then
-                    strStyle = "text-decoration: underline;"
-              Else
-                    strStyle = strStyle & ", underline;"
-              End If
+                If Len(strStyle) = 0 Then
+                      strStyle = "text-decoration: underline;"
+                Else
+                      strStyle = strStyle & ", underline;"
+                End If
             End If
             
-            If strStyle <> "" Then
-                strCSS = strCSS & strStyle & vbCrLf
-            End If
+            If Len(strStyle) > 0 Then tmp = tmp & strStyle & vbCrLf
             
-            strCSS = strCSS & "}" & vbCrLf
+            strHeader = strHeader & tmp & "}" & vbCrLf
         End With
-    End If
   Next i
   
-  strCSS = strCSS & "</style>" & vbCrLf
-  strTotal = strTotal & strCSS
-  strTotal = strTotal & "  </HEAD>" & vbCrLf & "  <BODY BGCOLOR=#FFFFFF TEXT=#000000>"
-  strOutput = ""
-  sBuffer = ""
-  iLen = scisimple.DirectSCI.GetLength
+  strHeader = strHeader & "</style></HEAD><BODY BGCOLOR=#FFFFFF TEXT=#000000>" & vbCrLf
   
-  For i = 0 To iLen
-        curStyle = scisimple.DirectSCI.GetStyleAt(i)
-        If (i + 1) < iLen Then
-            nextStyle = scisimple.DirectSCI.GetStyleAt(i + 1)
-        End If
-        If curStyle <> prevStyle Then
+  If FileExists(strFile) Then Kill strFile
+  
+  hFile = FreeFile
+  Open strFile For Binary As #hFile
+  Put #hFile, , strHeader
+  
+  strHeader = ""
+  
+  Dim buf As String
+  Dim c As Long
+  Dim b() As Byte
+  
+  b() = StrConv(scisimple.Text, vbFromUnicode, LANG_US)
+  
+  curStyle = scisimple.DirectSCI.GetStyleAt(0)
+  buf = "<span class=c" & curStyle & ">"
+  
+  For i = 0 To UBound(b)
         
-                SConcat "<span class=c" & curStyle & ">"
-                'strOutput = strOutput & "<span class=c" & curStyle & ">"
-                If scisimple.DirectSCI.GetCharAt(i) <> 13 And scisimple.DirectSCI.GetCharAt(i) <> 10 And scisimple.DirectSCI.GetCharAt(i) <> 60 And scisimple.DirectSCI.GetCharAt(i) <> 62 Then
-                    If scisimple.DirectSCI.GetCharAt(i) = 32 Then
-                        'strOutput = strOutput & "&nbsp;"
-                        SConcat "&nbsp;"
-                    Else
-                        SConcat Chr(scisimple.DirectSCI.GetCharAt(i))
-                        'strOutput = strOutput & scisimple.GetCharAt(i)
-                    End If
-                Else
-                    If scisimple.DirectSCI.GetCharAt(i) = 13 Then
-                        If scisimple.DirectSCI.GetCharAt(i + 1) <> 10 Then
-                          SConcat "<BR>"
-                          SConcat vbCrLf
-                        End If
-                    ElseIf scisimple.DirectSCI.GetCharAt(i) = 10 Then
-                        SConcat "<BR>"
-                        SConcat vbCrLf
-                    ElseIf scisimple.DirectSCI.GetCharAt(i) = 60 Then
-                        SConcat "&LT;"
-                    ElseIf scisimple.DirectSCI.GetCharAt(i) = 62 Then
-                        SConcat "&GT;"
-                    End If
-                    'strOutput = strOutput & "<BR>"
-                End If
-                If i = iLen Or nextStyle <> curStyle Then
-                    SConcat "</span>"
-                    'strOutput = strOutput & "</span>"
-                End If
-              Else
-              
-                If scisimple.DirectSCI.GetCharAt(i) <> 13 And scisimple.DirectSCI.GetCharAt(i) <> 10 And scisimple.DirectSCI.GetCharAt(i) <> 60 And scisimple.DirectSCI.GetCharAt(i) <> 62 Then
-                  If scisimple.DirectSCI.GetCharAt(i) = 32 Then
-                        SConcat "&nbsp;"
-                        'strOutput = strOutput & "&nbsp;"
-                  Else
-                        SConcat Chr(scisimple.DirectSCI.GetCharAt(i))
-                        'strOutput = strOutput & scisimple.GetCharAt(i)
-                  End If
-                Else
-                  If scisimple.DirectSCI.GetCharAt(i) = 13 Then
-                        If scisimple.DirectSCI.GetCharAt(i + 1) <> 10 Then
-                            SConcat "<BR>"
-                            SConcat vbCrLf
-                        End If
-                  ElseIf scisimple.DirectSCI.GetCharAt(i) = 10 Then
-                        SConcat "<BR>"
-                        SConcat vbCrLf
-                  ElseIf scisimple.DirectSCI.GetCharAt(i) = 60 Then
-                        SConcat "&LT;"
-                  ElseIf scisimple.DirectSCI.GetCharAt(i) = 62 Then
-                        SConcat "&GT;"
-                  End If
-                  'strOutput = strOutput & "<BR>"
-            End If
-            
-            If i = iLen Or nextStyle <> curStyle Then
-                  SConcat "</span>"
-                  'strOutput = strOutput & "</span>"
-            End If
+        If i Mod 500 = 0 Then DoEvents
+        
+        c = b(i)
+        newStyle = scisimple.DirectSCI.GetStyleAt(i)
+        
+        If curStyle <> newStyle Then
+            buf = buf & "</span><span class=c" & newStyle & ">"
+            curStyle = newStyle
         End If
-        prevStyle = curStyle
+        
+        Select Case c
+            Case 13: If i + 1 < UBound(b) And b(i + 1) <> 10 Then buf = buf & "<BR>" & vbCrLf
+            Case 9: buf = buf & "&nbsp; &nbsp; "
+            Case 10: buf = buf & "<BR>" & vbCrLf
+            Case 60: buf = buf & "&LT;"
+            Case 62: buf = buf & "&GT;"
+            Case 32: buf = buf & "&nbsp;"
+            Case Else: buf = buf & Chr(c)
+        End Select
+        
+        If Len(buf) > 4048 Then
+            Put #hFile, , buf
+            buf = Empty
+        End If
+        
   Next i
   
-  strOutput = GetString
-  strTotal = strTotal & strOutput
-  strTotal = strTotal & vbCrLf & "  </BODY>" & vbCrLf & "</HTML>"
+  Put #hFile, , buf & vbCrLf & "</span></BODY></HTML>"
+  Close #hFile
   
-  i = FreeFile
-  Open strFile For Output As #i
-  Print #i, strTotal
-  Close #i
-  strOutput = ""
-  
-  ExportToHTML2 = True
+  ExportToHTML3 = True
   
 End Function
 
@@ -503,7 +394,7 @@ Public Sub CommentBlock2(SCI As scisimple)
   Dim lTmp As Long 'If the line sel is reversed
   Dim ua() As String
   Dim strSplit As String
-  Dim X As Long
+  Dim x As Long
   Dim lAdd As Long
   Dim currentHighlighter As Integer
   
