@@ -24,7 +24,7 @@ CompatibleEXE32="scivb_lite.ocx"
 VersionCompatible32="1"
 MajorVer=1
 MinorVer=0
-RevisionVer=116
+RevisionVer=117
 AutoIncrementVer=1
 ServerSupportFiles=0
 VersionComments="This build has had all the forms removed to liten it up (was 800k) GUIDs have been changed to protect the innocent - dzzie@yahoo.com "
@@ -51,3 +51,6 @@ DebugStartupOption=0
 
 [MS Transaction Server]
 AutoRefresh=1
+
+[fastBuild]
+fullPath=D:\_code\scivb\scivb_lite.ocx

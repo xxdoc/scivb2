@@ -73,15 +73,18 @@ End Sub
 
 Private Sub Command2_Click()
     
-    Dim a As Long, b As Long
-    a = Timer
-    'a = GetTickCount
-    SciSimple1.ExportToHTML "C:\out.html"
-    b = Timer
-    'b = GetTickCount
+'    Dim a As Long, b As Long
+'    a = Timer
+'    'a = GetTickCount
+'    SciSimple1.ExportToHTML "C:\out.html"
+'    b = Timer
+'    'b = GetTickCount
+'
+'    MsgBox b - a & " seconds"
     
-    MsgBox b - a & " seconds"
-    
+    Dim f As New d
+    f.Show
+    f.Move Me.Left + 1000, Me.Top + 1000
     
 End Sub
 

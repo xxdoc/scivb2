@@ -53,8 +53,8 @@ Event DebugMsg(Msg As String)
 Event KeyDown(KeyCode As Long, Shift As Long)
 Event KeyUp(KeyCode As Long, Shift As Long)
 Event key(ch As Long, modifiers As Long)
-Event MouseDown(Button As Integer, Shift As Integer, x As Long, Y As Long)
-Event MouseUp(Button As Integer, Shift As Integer, x As Long, Y As Long)
+Event MouseDown(Button As Integer, Shift As Integer, X As Long, Y As Long)
+Event MouseUp(Button As Integer, Shift As Integer, X As Long, Y As Long)
 Event DoubleClick()
 Event OnModified(Position As Long, modificationType As Long)
 Event PosChanged(Position As Long)
@@ -71,7 +71,7 @@ Private Type RECT
 End Type
 
 Private Type POINTAPI
-        x As Long
+        X As Long
         Y As Long
 End Type
 
@@ -144,7 +144,7 @@ Private Type SCNotification
     foldLevelPrev As Long
     margin As Long
     listType As Long
-    x As Long
+    X As Long
     Y As Long
 End Type
 
@@ -414,7 +414,7 @@ Private Sub iSubclass_WndProc(ByVal bBefore As Boolean, bHandled As Boolean, lRe
     Dim zPos As Long
     Dim chl As String, strMatch As String
     Dim lPos As Long
-    Dim x As Long
+    Dim X As Long
         
     'this one is handled seperate so we can set breakpoints on the select and not see these..
     If uMsg = WM_NOTIFY Then
@@ -764,6 +764,7 @@ Public Function LoadHighlighter(filePath As String, Optional andSetActive As Boo
   On Error Resume Next
   Dim baseName As String
   baseName = GetBaseName(filePath)
+ 
   If Not ModHighlighter.LoadHighlighter(filePath) Then Exit Function
   If andSetActive Then
        If Not ModHighlighter.SetHighlighter(Me, baseName) Then Exit Function
@@ -809,7 +810,7 @@ Attribute hilightWord.VB_Description = "Hilights all the instances of the search
 
     Dim lastIndex As Long
     Dim editorText As String
-    Dim x As Long
+    Dim X As Long
     Dim hits As Long
     Dim curLine As Long
     
@@ -818,7 +819,7 @@ Attribute hilightWord.VB_Description = "Hilights all the instances of the search
     Const borderalpha = 100
     
     lastIndex = 1
-    x = 1
+    X = 1
     
     If Len(sSearch) = 0 Then Exit Function
     
@@ -836,15 +837,15 @@ Attribute hilightWord.VB_Description = "Hilights all the instances of the search
         .SendEditor SCI_INDICSETUNDER, 9, vbBlack
         .SendEditor SCI_INDICATORCLEARRANGE, 0, Len(editorText)
     
-        Do While x > 0
+        Do While X > 0
         
-            x = InStr(lastIndex, editorText, sSearch, compare)
+            X = InStr(lastIndex, editorText, sSearch, compare)
         
-            If x + 2 = lastIndex Or x < 1 Or x >= Len(editorText) Then
+            If X + 2 = lastIndex Or X < 1 Or X >= Len(editorText) Then
                 Exit Do
             Else
-                lastIndex = x + Len(sSearch)
-                DirectSCI.SendEditor SCI_INDICATORFILLRANGE, x - 1, Len(sSearch)
+                lastIndex = X + Len(sSearch)
+                DirectSCI.SendEditor SCI_INDICATORFILLRANGE, X - 1, Len(sSearch)
                 hits = hits + 1
             End If
             
@@ -891,14 +892,14 @@ End Sub
 Property Get FirstVisibleLine() As Long
     'returns the displayed line index, not absolute. if word wrap is on, it will be wrong..that was hard to find!
     
-    Dim x As Long
-    x = DirectSCI.GetFirstVisibleLine
+    Dim X As Long
+    X = DirectSCI.GetFirstVisibleLine
     
     If Me.WordWrap Or Me.Folding Then
-        x = DirectSCI.DocLineFromVisible(x)
+        X = DirectSCI.DocLineFromVisible(X)
     End If
     
-    FirstVisibleLine = x
+    FirstVisibleLine = X
     
 End Property
 
@@ -915,10 +916,10 @@ End Property
 
 Property Get TotalLines() As Long
     On Error Resume Next
-    Dim x As Long
-    x = UBound(Split(Me.Text, vbCrLf))
-    If x = -1 Then x = 0
-    TotalLines = x
+    Dim X As Long
+    X = UBound(Split(Me.Text, vbCrLf))
+    If X = -1 Then X = 0
+    TotalLines = X
 End Property
 
 Public Function FolderExists(path) As Boolean
@@ -1288,17 +1289,17 @@ End Function
 'takes a space delimited list of words and returns them alpha sorted
 'sci editor requires the strings to be case _sensitive_ sorted
 Private Function SortString(str As String) As String
-  Dim x, tmp() As String
+  Dim X, tmp() As String
   On Error Resume Next
   tmp = Split(str, " ")
   If Not AryIsEmpty(tmp) Then
         lstSort.Clear
-        For Each x In tmp 'list.sorted=true so it will auto sort the list for us :)
-            If Len(x) > 0 Then lstSort.AddItem x
+        For Each X In tmp 'list.sorted=true so it will auto sort the list for us :)
+            If Len(X) > 0 Then lstSort.AddItem X
         Next
         Erase tmp
-        For x = 0 To lstSort.ListCount()
-            push tmp, lstSort.List(x)
+        For X = 0 To lstSort.ListCount()
+            push tmp, lstSort.List(X)
         Next
         SortString = Trim(Join(tmp, " "))
   End If
@@ -1312,19 +1313,19 @@ Public Sub ShowAutoComplete(strVal As String)
 End Sub
 
 Public Function CurrentWord() As String
-    Dim line As String, x As Integer
+    Dim line As String, X As Integer
     Dim newstr As String ', iPos As Integer, iStart As Long, iEnd As Long
     Dim i As Integer
     Dim c As String
     
     line = GetLineText(CurrentLine())
-    x = GetCaretInLine
+    X = GetCaretInLine
     newstr = ""
     
     'parse the current line starting at the current cursor position and walking backwards..
-    For i = x To 1 Step -1
+    For i = X To 1 Step -1
         c = Mid(line, i, 1)
-        If c = "." And i = x Then
+        If c = "." And i = X Then
             'ignore the class member access marker
         ElseIf InStr(1, CallTipWordCharacters, c) > 0 Then
             newstr = c & newstr
@@ -1336,7 +1337,7 @@ Public Function CurrentWord() As String
     Next
 
     'maybe they clicked in the middle of a word..now scan forward to find its end.
-    For i = x + 1 To Len(line)
+    For i = X + 1 To Len(line)
         c = Mid(line, i, 1)
         If InStr(1, CallTipWordCharacters, c) > 0 Then
             newstr = newstr & c
@@ -1350,23 +1351,23 @@ Public Function CurrentWord() As String
 End Function
 
 Public Function PreviousWord() As String
-    Dim line As String, x As Integer
+    Dim line As String, X As Integer
     Dim newstr As String
     Dim i As Integer
     Dim c As String
     Dim curWord As String
     
     line = GetLineText(CurrentLine())
-    x = GetCaretInLine
+    X = GetCaretInLine
     newstr = ""
     
     curWord = CurrentWord()
-    x = x - Len(curWord)
+    X = X - Len(curWord)
     
     'parse the current line starting at the current cursor position and walking backwards..
-    For i = x To 1 Step -1
+    For i = X To 1 Step -1
         c = Mid(line, i, 1)
-        If c = "." And i = x Then
+        If c = "." And i = X Then
             'ignore the class member access marker
         ElseIf InStr(1, CallTipWordCharacters, c) > 0 Then
             newstr = c & newstr
@@ -1456,7 +1457,7 @@ Private Sub StartCallTip(ch As Long)
     ' This entire function is a bit of a hack.  It seems to work but it's very
     ' messy.  If anyone cleans it up please send me a new version so I can add
     ' it to this release.  Thanks :)
-    Dim line As String, PartLine As String, i As Integer, x As Integer
+    Dim line As String, PartLine As String, i As Integer, X As Integer
     Dim newstr As String, iPos As Integer, iStart As Long, iEnd As Long
     Dim a, i2 As Integer
     
@@ -1466,7 +1467,7 @@ Private Sub StartCallTip(ch As Long)
     If ch = Asc("(") Then
           line = GetLineText(CurrentLine())
         
-          x = GetCaretInLine
+          X = GetCaretInLine
           newstr = ""
         
           '
@@ -1476,7 +1477,7 @@ Private Sub StartCallTip(ch As Long)
           '
           '
         
-                For i2 = x - 1 To 1 Step -1
+                For i2 = X - 1 To 1 Step -1
                     If Mid(line, i2, 1) < 33 And newstr <> "" Then    ' ignore whitespace before (
                         Exit For
                     Else
@@ -1534,9 +1535,9 @@ Private Sub StartCallTip(ch As Long)
             Else
                 ' are we still in the current tooltip ?
                 line = GetLineText(CurrentLine())
-                x = GetCaretInLine
-                iPos = InStrRev(line, "(", x)
-                PartLine = Mid(line, iPos + 1, x - iPos) 'Get the chunk of the string were in
+                X = GetCaretInLine
+                iPos = InStrRev(line, "(", X)
+                PartLine = Mid(line, iPos + 1, X - iPos) 'Get the chunk of the string were in
         
                 If InStr(1, APIStrings(ActiveCallTip), ",") = 0 Then   ' only one param
                     iStart = InStr(1, APIStrings(ActiveCallTip), "(") - 1
@@ -1753,22 +1754,22 @@ End Sub
 
 Public Sub NextMarker(lLine As Long, Optional marknum As Long = 2)
 Attribute NextMarker.VB_Description = "Goes to the next marker in document after line argument. MarkNum is the marker group?"
-  Dim x As Long
-  x = SendEditor(SCN_MARKERNEXT, lLine, marknum)
-  If x = -1 Then
-        x = SendEditor(SCN_MARKERNEXT, 0, marknum)
+  Dim X As Long
+  X = SendEditor(SCN_MARKERNEXT, lLine, marknum)
+  If X = -1 Then
+        X = SendEditor(SCN_MARKERNEXT, 0, marknum)
   End If
-  DirectSCI.GotoLine x
+  DirectSCI.GotoLine X
 End Sub
 
 Public Sub PrevMarker(lLine As Long, Optional marknum As Long = 2)
 Attribute PrevMarker.VB_Description = "Goes to previous marker from line. MarkNum is the marker group?"
-  Dim x As Long
-  x = SendEditor(SCN_MARKERPREVIOUS, lLine, marknum)
-  If x = -1 Then
-        x = SendEditor(SCN_MARKERPREVIOUS, DirectSCI.GetLineCount, marknum)
+  Dim X As Long
+  X = SendEditor(SCN_MARKERPREVIOUS, lLine, marknum)
+  If X = -1 Then
+        X = SendEditor(SCN_MARKERPREVIOUS, DirectSCI.GetLineCount, marknum)
   End If
-  DirectSCI.GotoLine x
+  DirectSCI.GotoLine X
 End Sub
 
 Public Sub DeleteAllMarkers(Optional marknum As Long = 2)
@@ -1781,11 +1782,11 @@ End Sub
 
 
 Public Sub MarkAll(strFind As String)
-      Dim x As Long
+      Dim X As Long
       Dim g As Boolean
       Dim bFind As Long
       
-      x = DirectSCI.GetCurPos
+      X = DirectSCI.GetCurPos
       DirectSCI.SetSel 0, 0
       Call SendEditor(SCI_SETTARGETSTART, 0)
       Call SendEditor(SCI_SETTARGETEND, DirectSCI.GetTextLength)
@@ -1807,7 +1808,7 @@ Public Sub MarkAll(strFind As String)
             bFind = DirectSCI.SearchInTarget(Len(strFind), strFind)
       Loop
       
-      DirectSCI.SetSel x, x
+      DirectSCI.SetSel X, X
 End Sub
 
 '================================[ /markers ] ==============================
@@ -1897,16 +1898,16 @@ Public Function FindAll(sSearch As String, _
 Attribute FindAll.VB_Description = "Returns number of indexes added to the out_StartPositions array or -1 on failure"
                 
      Dim ret() As Long
-     Dim x As Long
+     Dim X As Long
      Dim hits As Long
      
      hits = -1
-     x = Find(sSearch, 0, False, CaseSensative, WordStart, WholeWord, RegExp)
+     X = Find(sSearch, 0, False, CaseSensative, WordStart, WholeWord, RegExp)
      
-     Do While x <> -1
+     Do While X <> -1
         hits = hits + 1
-        push out_StartPositions, x
-        x = FindNext()
+        push out_StartPositions, X
+        X = FindNext()
      Loop
          
      FindAll = hits
@@ -2067,8 +2068,8 @@ Private Function GetWindowCursorPos(Window As Long) As POINTAPI
   Dim rct As RECT
   GetCursorPos lP
   GetWindowRect Window, rct
-  GetWindowCursorPos.x = lP.x - rct.Left
-  If GetWindowCursorPos.x < 0 Then GetWindowCursorPos.x = 0
+  GetWindowCursorPos.X = lP.X - rct.Left
+  If GetWindowCursorPos.X < 0 Then GetWindowCursorPos.X = 0
   GetWindowCursorPos.Y = lP.Y - rct.Top
   If GetWindowCursorPos.Y < 0 Then GetWindowCursorPos.Y = 0
 End Function
