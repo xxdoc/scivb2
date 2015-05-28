@@ -344,7 +344,7 @@ End Function
 Public Sub UnSubAll()
   Dim i     As Long
   Dim nAddr As Long
-
+  
   With z_hWnds
     For i = .Count To 1 Step -1                                             'Loop through the collection of window handles in reverse order
       nAddr = .Item(i)                                                      'Map z_Data() to the window handle's thunk address

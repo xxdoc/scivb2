@@ -374,6 +374,9 @@ Private Sub HandleSciMsg(tHdr As NMHDR, scMsg As SCNotification)
             Case SCN_NEEDSHOWN
                                 'TODO
               
+            Case SCN_CALLTIPCLICK
+                                RaiseEvent CallTipClick(scMsg.Position)
+                                
             Case SCN_PAINTED
                                 'RaiseEvent Painted
                                 
@@ -437,7 +440,8 @@ Private Sub iSubclass_WndProc(ByVal bBefore As Boolean, bHandled As Boolean, lRe
                         bHandled = True
                         lReturn = 0
                         strMatch = CurrentWord
-                        If Len(strMatch) > 0 Then RaiseEvent AutoCompleteEvent(strMatch)
+                        'If Len(strMatch) > 0 Then RaiseEvent AutoCompleteEvent(strMatch)
+                        RaiseEvent AutoCompleteEvent(strMatch) 'behavior changed 6.26.14 -dz
                     Else
                         bHandled = False
                         lReturn = 0
@@ -480,7 +484,7 @@ Private Sub iSubclass_WndProc(ByVal bBefore As Boolean, bHandled As Boolean, lRe
                         End If
                     End If
                     
-                    If bShowCallTips Then
+                    If bShowCallTips And scMsg.ch <> 0 Then
                         StartCallTip scMsg.ch
                     End If
             
@@ -1419,10 +1423,22 @@ End Function
 '===========================[ call tips ] ===================================
 
 Public Function LoadCallTips(strFile As String) As Long
+  On Error Resume Next
   Erase APIStrings  'Clear the old array
   If Not FileExists(strFile) Then Exit Function
-  APIStrings = Split(ReadFile(strFile), vbCrLf)
+  
+  Dim tmp() As String, X
+  
+  tmp = Split(ReadFile(strFile), vbCrLf)
+  For Each X In tmp
+        X = Trim(X)
+        If Len(X) > 0 And Left(X, 1) <> "#" And Left(X, 1) <> "'" Then
+            push APIStrings, X
+        End If
+  Next
+  
   LoadCallTips = UBound(APIStrings)
+  
 End Function
 
 Public Function AddCallTip(functionPrototype As String)
@@ -1462,70 +1478,60 @@ Private Sub StartCallTip(ch As Long)
     Dim a, i2 As Integer
     
     If AryIsEmpty(APIStrings) Then Exit Sub
-    'If UBound(APIStrings) = 0 Then Exit Sub
     
     If ch = Asc("(") Then
-          line = GetLineText(CurrentLine())
-        
-          X = GetCaretInLine
-          newstr = ""
-        
-          '
-          ' For those compilers that allow whitespace between function and parenthesis
-          ' ignore whitespace
-          '
-          '
-          '
-        
-                For i2 = X - 1 To 1 Step -1
-                    If Mid(line, i2, 1) < 33 And newstr <> "" Then    ' ignore whitespace before (
-                        Exit For
+            line = GetLineText(CurrentLine())
+            X = GetCaretInLine
+            ' For those compilers that allow whitespace between function and parenthesis
+            ' ignore whitespace
+            For i2 = X - 1 To 1 Step -1
+                If Mid(line, i2, 1) < 33 And newstr <> "" Then    ' ignore whitespace before (
+                    Exit For
+                Else
+                    If InStr(1, CallTipWordCharacters, Mid(line, i2, 1)) > 0 Then
+                        newstr = Mid(line, i2, 1) & newstr
                     Else
-                        If InStr(1, CallTipWordCharacters, Mid(line, i2, 1)) > 0 Then
-                            newstr = Mid(line, i2, 1) & newstr
-                        Else
-                            If Asc(Mid(line, i2, 1)) > 33 Then   ' not valid character (and not whitespace)
-                                Exit For
-                            End If
+                        If Asc(Mid(line, i2, 1)) > 33 Then   ' not valid character (and not whitespace)
+                            Exit For
                         End If
                     End If
-                Next i2
+                End If
+            Next i2
         
             If Len(newstr) = 0 Then   ' blank line ?
-              StopCallTip
-              Exit Sub
+                StopCallTip
+                Exit Sub
             End If
         
             newstr = newstr & "("    ' make it into a function name so no partial searches of other API functions
         
           ' Lookup the Function name in the API list
-            If GetUpper(APIStrings) > 0 Then
-                  For i = 0 To UBound(APIStrings)
-                        If InStr(1, LCase$(APIStrings(i)), LCase$(newstr)) <> 0 Then ' case insensitive string
-                                ActiveCallTip = i
-                    
-                                iPos = InStr(1, APIStrings(i), ")")
-                                ShowCallTip Left$(APIStrings(i), iPos) ' to end of function
-                    
-                                iPos = InStr(1, APIStrings(i), ",")
-                                If iPos > 0 Then
-                                    iStart = Len(newstr)
-                                    iEnd = iPos - 1
-                                    SetCallTipHighlight iStart, iEnd
-                                    Exit For
-                                Else
-                                    ' single parameter ?
-                                    If Len(newstr) + 1 <> Len(APIStrings(i)) Then
-                                        iStart = Len(newstr)
-                                        iEnd = Len(APIStrings(i)) - 1
-                                        SetCallTipHighlight iStart, iEnd
-                                        Exit For
-                                    End If
-                                End If
-                        End If
-                   Next
-            End If
-            Exit Sub
+            For i = 0 To UBound(APIStrings)
+                  If Left(LCase$(APIStrings(i)), Len(newstr)) = LCase$(newstr) Then ' case insensitive string
+                          ActiveCallTip = i
+              
+                          iPos = InStr(1, APIStrings(i), ")")
+                          ShowCallTip Left$(APIStrings(i), iPos) ' to end of function
+              
+                          iPos = InStr(1, APIStrings(i), ",")
+                          If iPos > 0 Then
+                              iStart = Len(newstr)
+                              iEnd = iPos - 1
+                              SetCallTipHighlight iStart, iEnd
+                              Exit For
+                          Else
+                              ' single parameter ?
+                              If Len(newstr) + 1 <> Len(APIStrings(i)) Then
+                                  iStart = Len(newstr)
+                                  iEnd = Len(APIStrings(i)) - 1
+                                  SetCallTipHighlight iStart, iEnd
+                                  Exit For
+                              End If
+                          End If
+                  End If
+             Next
+             
+             Exit Sub
     End If
     
     ' Do we have a tip already active ?

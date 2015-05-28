@@ -4,10 +4,10 @@ Begin VB.Form frmReplace
    ClientHeight    =   2640
    ClientLeft      =   60
    ClientTop       =   345
-   ClientWidth     =   5310
+   ClientWidth     =   11160
    LinkTopic       =   "Form3"
    ScaleHeight     =   2640
-   ScaleWidth      =   5310
+   ScaleWidth      =   11160
    StartUpPosition =   3  'Windows Default
    Begin VB.ListBox List1 
       BeginProperty Font 
@@ -197,7 +197,7 @@ Dim lastkey As Integer
 Dim lastIndex As Long
 Dim lastsearch As String
 
-Private Declare Sub SetWindowPos Lib "user32" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal x As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long)
+Private Declare Sub SetWindowPos Lib "user32" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal X As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long)
 Private Const HWND_TOPMOST = -1
 Private Const HWND_NOTOPMOST = -2
 Private Const SWP_SHOWWINDOW = &H40
@@ -222,10 +222,10 @@ Private Sub cmdFind_Click()
         compare = vbTextCompare
     End If
     
-    x = InStr(1, SCI.Text, lastsearch, compare)
-    If x > 0 Then
-        lastIndex = x + 2
-        SCI.SelStart = x - 1
+    X = InStr(1, SCI.Text, lastsearch, compare)
+    If X > 0 Then
+        lastIndex = X + 2
+        SCI.SelStart = X - 1
         SCI.SelLength = Len(lastsearch)
         SCI.GotoLine SCI.CurrentLine - 1
         SCI.SelectLine
@@ -263,21 +263,21 @@ Public Sub cmdFindAll_Click()
     
     lastIndex = 1
     lastsearch = f
-    x = 1
+    X = 1
     
     If Len(f) = 0 Then Exit Sub
     
     LockWindowUpdate SCI.sciHWND
     editorText = SCI.Text
-    Do While x > 0
+    Do While X > 0
     
-        x = InStr(lastIndex, editorText, lastsearch, compare)
+        X = InStr(lastIndex, editorText, lastsearch, compare)
     
-        If x + 2 = lastIndex Or x < 1 Or x >= Len(editorText) Then
+        If X + 2 = lastIndex Or X < 1 Or X >= Len(editorText) Then
             Exit Do
         Else
-            lastIndex = x + 2
-            SCI.SelStart = x - 1
+            lastIndex = X + 2
+            SCI.SelStart = X - 1
             SCI.SelLength = Len(lastsearch)
             line = SCI.CurrentLine
             txt = Replace(Trim(SCI.GetLineText(line)), vbTab, Empty)
@@ -334,14 +334,14 @@ Private Sub cmdFindNext_Click()
         compare = vbTextCompare
     End If
     
-    x = InStr(lastIndex, SCI.Text, lastsearch, compare)
+    X = InStr(lastIndex, SCI.Text, lastsearch, compare)
     
-    If x + 2 = lastIndex Or x < 1 Then
+    If X + 2 = lastIndex Or X < 1 Then
         MsgBox "No more matches found", vbInformation
         Exit Sub
     Else
-        lastIndex = x + 2
-        SCI.SelStart = x - 1
+        lastIndex = X + 2
+        SCI.SelStart = X - 1
         SCI.SelLength = Len(lastsearch)
         SCI.GotoLine SCI.CurrentLine
         SCI.SelectLine
@@ -464,19 +464,19 @@ Private Sub List1_Click()
     
 End Sub
 
-Private Sub List1_MouseDown(Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub List1_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 
 Private Sub mnuCopyAll_Click()
     On Error Resume Next
-    Dim x As String
+    Dim X As String
     For i = 0 To List1.ListCount
-        x = x & List1.List(i) & vbCrLf
+        X = X & List1.List(i) & vbCrLf
     Next
     Clipboard.Clear
-    Clipboard.SetText x
-    MsgBox Len(x) & " bytes copied", vbInformation
+    Clipboard.SetText X
+    MsgBox Len(X) & " bytes copied", vbInformation
 End Sub
 
 Private Sub Text3_KeyPress(KeyAscii As Integer)
@@ -484,10 +484,10 @@ Private Sub Text3_KeyPress(KeyAscii As Integer)
 End Sub
 
 Private Sub Text3_KeyUp(KeyAscii As Integer, Shift As Integer)
-    Dim x As String
-    x = Hex(lastkey)
-    If Len(x) = 1 Then x = "0" & x
-    Text4 = x
+    Dim X As String
+    X = Hex(lastkey)
+    If Len(X) = 1 Then X = "0" & X
+    Text4 = X
     Text3 = Chr(lastkey)
 End Sub
 
@@ -523,7 +523,7 @@ End Function
 
 
 'this should now be unicode safe on foreign systems..
-Function unescape(x) As String '%uxxxx and %xx
+Function unescape(X) As String '%uxxxx and %xx
     
     'On Error GoTo hell
     
@@ -534,7 +534,7 @@ Function unescape(x) As String '%uxxxx and %xx
     Dim elems As Long
     Dim t
     
-    tmp = Split(x, "%")
+    tmp = Split(X, "%")
     
     s_bpush r(), tmp(0) 'any prefix before encoded part..
     
@@ -587,9 +587,9 @@ End Sub
 
 Private Sub bpush(bAry() As Byte, b As Byte) 'this modifies parent ary object
     On Error GoTo init
-    Dim x As Long
+    Dim X As Long
     
-    x = UBound(bAry) '<-throws Error If Not initalized
+    X = UBound(bAry) '<-throws Error If Not initalized
     ReDim Preserve bAry(UBound(bAry) + 1)
     bAry(UBound(bAry)) = b
     

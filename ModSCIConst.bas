@@ -50,6 +50,7 @@ Public Const SCN_URIDROPPED = 2015
 Public Const SCN_DWELLSTART = 2016
 Public Const SCN_DWELLEND = 2017
 Public Const SCN_KEY = 2005
+Public Const SCN_CALLTIPCLICK = 2021
 
 '-------------------MÁSCARA DE EVENTOS PARA SCN_MODIFIED----------
 Public Const SC_MOD_INSERTTEXT = &H1

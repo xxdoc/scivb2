@@ -177,7 +177,7 @@ Global Const LANG_US = &H409
 
 
 Public Function GetUpper(varArray As Variant) As Long
-    Dim Upper As Integer
+    Dim Upper As Long
     On Error Resume Next
     
     Upper = UBound(varArray)
@@ -417,9 +417,10 @@ End Function
 Public Function Byte2Str(bVal() As Byte) As String
   Dim i As Long
   If GetUpper(bVal) <> 0 Then
-    For i = 0 To UBound(bVal())
-      Byte2Str = Byte2Str & Chr(bVal(i))
-    Next i
+'    For i = 0 To UBound(bVal())
+'      Byte2Str = Byte2Str & Chr(bVal(i))
+'    Next i
+    Byte2Str = StrConv(bVal, vbUnicode, LANG_US)
   End If
 End Function
 
