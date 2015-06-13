@@ -23,7 +23,7 @@ Begin VB.Form frmReplace
       Left            =   5355
       TabIndex        =   17
       Top             =   0
-      Width           =   3975
+      Width           =   5775
    End
    Begin VB.CommandButton cmdFindAll 
       Caption         =   "Find All"
@@ -196,6 +196,7 @@ Public SCI As scisimple
 Dim lastkey As Integer
 Dim lastIndex As Long
 Dim lastsearch As String
+Dim init As Long
 
 Private Declare Sub SetWindowPos Lib "user32" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal X As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long)
 Private Const HWND_TOPMOST = -1
@@ -243,6 +244,7 @@ Public Sub cmdFindAll_Click()
     Dim txt As String
     Dim line As Long
     Dim editorText As String
+    Dim firstLine As Long
     
     If Me.Width < 10440 Then Me.Width = 10440
     List1.Clear
@@ -261,6 +263,7 @@ Public Sub cmdFindAll_Click()
         compare = vbTextCompare
     End If
     
+    firstLine = SCI.DirectSCI.GetFirstVisibleLine
     lastIndex = 1
     lastsearch = f
     X = 1
@@ -296,12 +299,14 @@ Public Sub cmdFindAll_Click()
         
     Loop
     
+    SCI.DirectSCI.GotoLine firstLine
     LockWindowUpdate 0
     
-    If List1.ListCount >= 0 Then
-        List1.selected(0) = True
-        List1_Click
-    End If
+    'I dont like the auto navigation..disorientating..let the user decide
+    'If List1.ListCount >= 0 Then
+        'List1.selected(0) = True
+        'List1_Click
+    'End If
     
     Me.Caption = List1.ListCount & " items found!"
     
@@ -402,13 +407,14 @@ Public Sub LaunchReplaceForm(txtObj As scisimple)
     End If
     cmdFindAll.visible = True
     Me.show
+    If Not init Then Form_Load
+    Form_Resize
 End Sub
 
 
-
-
 Private Sub Form_Load()
-    FormPos Me, False
+    init = True
+    FormPos Me, True
     SetWindowPos Me.hwnd, HWND_TOPMOST, Me.Left / 15, Me.Top / 15, Me.Width / 15, Me.Height / 15, SWP_SHOWWINDOW
     If Len(Text1) = 0 Then Text1 = GetMySetting("lastFind")
     Text2 = GetMySetting("lastReplace")
@@ -422,7 +428,7 @@ Private Sub Form_Resize()
 End Sub
 
 Private Sub Form_Unload(Cancel As Integer)
-    FormPos Me, False, True
+    FormPos Me, True, True
     SaveMySetting "lastFind", Text1
     SaveMySetting "lastReplace", Text2
     SaveMySetting "wholeText", IIf(Option1.Value, "1", "0")
