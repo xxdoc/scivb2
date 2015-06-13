@@ -96,6 +96,7 @@ End Enum
 Private hSciLexer As Long
 Private m_hMod As Long
 Private chStore As Long
+Private mLastTopLine As Long
 
 Private APIStrings() As String
 Private ActiveCallTip As Integer 'no reason for this to be global?
@@ -268,8 +269,8 @@ Private Sub HandleSciMsg(tHdr As NMHDR, scMsg As SCNotification)
     Select Case tHdr.Code
             Case SCN_MODIFIED
                                 RaiseEvent OnModified(scMsg.Position, scMsg.modificationType)
-            Case 2012
-                                RaiseEvent PosChanged(scMsg.Position)
+            'Case 2012
+                                'RaiseEvent PosChanged(scMsg.Position)
             Case SCN_KEY
                                 RaiseEvent key(scMsg.ch, scMsg.modifiers)
             Case SCN_STYLENEEDED
@@ -351,6 +352,12 @@ Private Sub HandleSciMsg(tHdr As NMHDR, scMsg As SCNotification)
                                     End If
                                     
                                 End If
+                                
+                                If mLastTopLine <> Me.FirstVisibleLine Then
+                                    mLastTopLine = Me.FirstVisibleLine
+                                    RaiseEvent PosChanged(mLastTopLine)
+                                End If
+                                
                                 'RaiseEvent UpdateUI
                                 
                                 
