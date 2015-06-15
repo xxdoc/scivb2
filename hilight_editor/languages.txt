@@ -1,0 +1,27 @@
+
+these are the languages compiled into my build of scilexer.dll
+the ilang field is the related #define
+
+you can load a specific sclexer.dll manually by calling loadlib on it
+before you load a form with scivb
+
+	LINK_LEXER(lmAsasm);
+	LINK_LEXER(lmAsm);
+	LINK_LEXER(lmCPP);
+	LINK_LEXER(lmCPPNoCase);
+	LINK_LEXER(lmHTML);
+	LINK_LEXER(lmPHPSCRIPT);
+	LINK_LEXER(lmSQL);
+	LINK_LEXER(lmVB);
+	LINK_LEXER(lmVBScript);
+	LINK_LEXER(lmXML);
+
+#define SCLEX_CPP 3
+#define SCLEX_HTML 4
+#define SCLEX_XML 5
+#define SCLEX_SQL 7
+#define SCLEX_VB 8
+#define SCLEX_Asasm 9
+#define SCLEX_ASM 34
+#define SCLEX_CPPNOCASE 35
+#define SCLEX_PHPSCRIPT 69

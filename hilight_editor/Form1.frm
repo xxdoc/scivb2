@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form Form1 
    Caption         =   "SCIVB Highlighter Editor"
    ClientHeight    =   9750
@@ -430,6 +430,14 @@ Begin VB.Form Form1
          Object.Width           =   2540
       EndProperty
    End
+   Begin VB.Label Label5 
+      Caption         =   "(see language.txt)"
+      Height          =   285
+      Left            =   6930
+      TabIndex        =   36
+      Top             =   1395
+      Width           =   1320
+   End
    Begin VB.Label Label1 
       Caption         =   "Language"
       BeginProperty Font 
@@ -625,6 +633,11 @@ Private Sub cmdResetSizes_Click()
 End Sub
 
 Private Sub cmdSave_Click()
+On Error Resume Next
+    H.strFilter = txtFilter
+    H.strComment = txtComment
+    H.strName = txtName
+    H.iLang = CLng(txtLang)
     SaveHighlighter txtFile
 End Sub
 
