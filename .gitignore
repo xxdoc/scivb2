@@ -14,5 +14,5 @@
 *.gif
 *.rar
 .update*
-/scintilla339/*
+/scintilla339/scintilla/win32/*
 *00.zip
