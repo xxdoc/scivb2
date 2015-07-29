@@ -57,10 +57,16 @@ Event MouseDown(Button As Integer, Shift As Integer, X As Long, Y As Long)
 Event MouseUp(Button As Integer, Shift As Integer, X As Long, Y As Long)
 Event DoubleClick()
 Event OnModified(Position As Long, modificationType As Long)
-Event PosChanged(Position As Long)
+Event LineChanged(Position As Long)
 Event UserListSelection(listType As Long, Text As String)   'Selected AutoComplete
 Event CallTipClick(Position As Long)                        'Clicked a calltip
 Event AutoCSelection(Text As String)                        'Auto Completed selected
+
+Public Event MarginClick(lline As Long, Position As Long, margin As Long, modifiers As Long)
+Public Event MouseDwellStart(lline As Long, Position As Long)
+Public Event MouseDwellEnd(lline As Long, Position As Long)
+Public Event NewLine()
+
 
 
 Private Type RECT
@@ -355,7 +361,7 @@ Private Sub HandleSciMsg(tHdr As NMHDR, scMsg As SCNotification)
                                 
                                 If mLastTopLine <> Me.FirstVisibleLine Then
                                     mLastTopLine = Me.FirstVisibleLine
-                                    RaiseEvent PosChanged(mLastTopLine)
+                                    RaiseEvent LineChanged(mLastTopLine)
                                 End If
                                 
                                 'RaiseEvent UpdateUI
@@ -367,16 +373,17 @@ Private Sub HandleSciMsg(tHdr As NMHDR, scMsg As SCNotification)
                                 '  RaiseEvent MacroRecord(scMsg.message, wParam)
                                 
             Case SCN_MARGINCLICK
-                                Dim lLine As Long, lMargin As Long, lPosition As Long
+                                Dim lline As Long, lMargin As Long, lPosition As Long
                                 lPosition = scMsg.Position
-                                lLine = SendEditor(SCI_LINEFROMPOSITION, lPosition)
+                                lline = SendEditor(SCI_LINEFROMPOSITION, lPosition)
                                 lMargin = scMsg.margin
                                 
                                 If lMargin = MARGIN_SCRIPT_FOLD_INDEX Then
-                                    Call SendEditor(SCI_TOGGLEFOLD, lLine, 0)
+                                    Call SendEditor(SCI_TOGGLEFOLD, lline, 0)
                                 End If
                                 
                                 'RaiseEvent MarginClick(scMsg.modifiers, scMsg.Position)
+                                RaiseEvent MarginClick(lline, scMsg.Position, scMsg.margin, scMsg.modifiers)
                                 
             Case SCN_NEEDSHOWN
                                 'TODO
@@ -403,9 +410,11 @@ Private Sub HandleSciMsg(tHdr As NMHDR, scMsg As SCNotification)
                                 RaiseEvent UserListSelection(scMsg.listType, strTmp)
                                 
             Case SCN_DWELLSTART
-                                'TODO
+                                lline = DirectSCI.SendEditor(SCI_LINEFROMPOSITION, scMsg.Position)
+                                RaiseEvent MouseDwellStart(lline, scMsg.Position)
             Case SCN_DWELLEND
-                                'TODO
+                                lline = DirectSCI.SendEditor(SCI_LINEFROMPOSITION, scMsg.Position)
+                                RaiseEvent MouseDwellEnd(lline, scMsg.Position)
 
     End Select
     
@@ -495,6 +504,10 @@ Private Sub iSubclass_WndProc(ByVal bBefore As Boolean, bHandled As Boolean, lRe
                         StartCallTip scMsg.ch
                     End If
             
+                    If wParam = 13 Then
+                        RaiseEvent NewLine
+                    End If
+    
                     RaiseEvent KeyDown(wParam, piGetShiftState)
                     
       Case WM_KEYUP
@@ -536,6 +549,7 @@ End Sub
 
 'this is only called from initscintinilla right now..
 Private Sub SetOptions()
+        Dim i As Long
 
         DirectSCI.SetCaretFore m_def_CaretForeColor
         DirectSCI.SetCaretWidth m_def_CaretWidth
@@ -567,6 +581,11 @@ Private Sub SetOptions()
         If ShowFlags = True Then
           DirectSCI.SetMarginWidthN 1, misc.GutterWidth(gut1)
         End If
+        
+        For i = 0 To 4
+            DirectSCI.SetMarginSensitiveN i, 1
+        Next
+        DirectSCI.SetMouseDwellTime 600
         
         DirectSCI.SetCaretLineVisible m_LineVisible
         DirectSCI.SetCaretLineBack m_LineBackColor
@@ -967,19 +986,19 @@ Public Property Let codePage(ByVal New_CodePage As SC_CODETYPE)
     SendEditor SCI_SETCODEPAGE, New_CodePage, 0
 End Property
 
-Public Function GetLineText(ByVal lLine As Long) As String
+Public Function GetLineText(ByVal lline As Long) As String
   'On Error Resume Next
   Dim txt As String
   Dim lLength As Long
   Dim i As Long
   Dim bByte() As Byte
   
-  lLength = SendMessage(SCI, SCI_LINELENGTH, lLine, 0)
+  lLength = SendMessage(SCI, SCI_LINELENGTH, lline, 0)
   lLength = lLength - 1 'By default this will tag on Chr(10) + chr(13)
   
   If lLength > 0 Then
     ReDim bByte(0 To lLength)
-    SendMessage SCI, SCI_GETLINE, lLine, VarPtr(bByte(0))
+    SendMessage SCI, SCI_GETLINE, lline, VarPtr(bByte(0))
     txt = Byte2Str(bByte())
   Else
     txt = ""  'This line is 0 length
@@ -1129,8 +1148,8 @@ Public Property Let ShowIndentationGuide(ByVal New_IndentationGuide As Boolean)
     DirectSCI.SetIndentationGuides m_IndentationGuide
 End Property
 
-Private Function GetLineIndentPosition(lLine As Long) As Long
-  GetLineIndentPosition = SendEditor(SCI_GETLINEINDENTPOSITION, lLine)
+Private Function GetLineIndentPosition(lline As Long) As Long
+  GetLineIndentPosition = SendEditor(SCI_GETLINEINDENTPOSITION, lline)
 End Function
 
 Public Property Get useTabs() As Boolean
@@ -1275,8 +1294,8 @@ Public Property Let SelFore(ByVal New_SelFore As OLE_COLOR)
     DirectSCI.SetSelFore True, m_SelFore
 End Property
 
-Public Function PositionFromLine(lLine As Long) As Long
-  PositionFromLine = SendEditor(SCI_POSITIONFROMLINE, lLine)
+Public Function PositionFromLine(lline As Long) As Long
+  PositionFromLine = SendEditor(SCI_POSITIONFROMLINE, lline)
 End Function
 
 Public Sub SetCurrentPosition(lval As Long)
@@ -1765,20 +1784,20 @@ Public Sub DeleteMarker(iLine As Long, Optional marknum As Long = 2)
      SendEditor SCN_MARKERDELETE, iLine, marknum
 End Sub
 
-Public Sub NextMarker(lLine As Long, Optional marknum As Long = 2)
+Public Sub NextMarker(lline As Long, Optional marknum As Long = 2)
 Attribute NextMarker.VB_Description = "Goes to the next marker in document after line argument. MarkNum is the marker group?"
   Dim X As Long
-  X = SendEditor(SCN_MARKERNEXT, lLine, marknum)
+  X = SendEditor(SCN_MARKERNEXT, lline, marknum)
   If X = -1 Then
         X = SendEditor(SCN_MARKERNEXT, 0, marknum)
   End If
   DirectSCI.GotoLine X
 End Sub
 
-Public Sub PrevMarker(lLine As Long, Optional marknum As Long = 2)
+Public Sub PrevMarker(lline As Long, Optional marknum As Long = 2)
 Attribute PrevMarker.VB_Description = "Goes to previous marker from line. MarkNum is the marker group?"
   Dim X As Long
-  X = SendEditor(SCN_MARKERPREVIOUS, lLine, marknum)
+  X = SendEditor(SCN_MARKERPREVIOUS, lline, marknum)
   If X = -1 Then
         X = SendEditor(SCN_MARKERPREVIOUS, DirectSCI.GetLineCount, marknum)
   End If
@@ -2121,6 +2140,81 @@ Private Sub RemoveHotKeys()
   DirectSCI.ClearCmdKey Asc("U") + LShift(SCMOD_CTRL, 16)
    'AssignCmdKey 32 + LShift(SCMOD_CTRL, 16), SCI_AUTOCSHOW
 End Sub
+
+Public Function WordUnderMouse(pos As Long, Optional ignoreWhiteSpace As Boolean = False) As String
+    Dim sWord As Long, eWord As Long
+    
+    On Error Resume Next
+    'behavior warning.. space characters are counted as words we should count space chars
+    'back from pos and pos -= spaceCount
+    
+    If ignoreWhiteSpace Then pos = pos - GetSpaceCountBack(pos)
+    
+    
+    sWord = DirectSCI.WordStartPosition(pos, True) + 1
+    eWord = DirectSCI.WordEndPosition(pos, True) + 1
+    WordUnderMouse = Mid(Me.Text, sWord, eWord - sWord)
+
+End Function
+
+'gets the number of spaces counting back to next non white space character
+Private Function GetSpaceCountBack(pos As Long)
+    On Error Resume Next
+    Dim lline As Long, curpos As Long, lText As String, i As Long
+    Dim lStart As Long, curCol As Long, b() As Byte, count As Long
+    
+    lline = DirectSCI.LineFromPosition(pos)
+    lText = GetLineText(lline)
+    lStart = PositionFromLine(lline)
+    curCol = pos - lStart
+    
+    lText = Left(lText, curCol)
+    If Len(lText) = 0 Then Exit Function
+    
+    b() = StrConv(lText, vbFromUnicode)
+    For i = UBound(b) To 0 Step -1
+        If b(i) = &H20 Or b(i) = 9 Then
+            count = count + 1
+        Else
+            Exit For
+        End If
+    Next
+    
+    GetSpaceCountBack = count
+    
+End Function
+
+Sub LockEditor(Optional locked As Boolean = True)
+    Dim i As Long
+    
+    If locked Then
+        ReadOnly = True
+        DirectSCI.StyleSetBack 32, &HF0F0F0
+        For i = 0 To 127
+            DirectSCI.StyleSetBack i, &HF0F0F0
+        Next i
+    Else
+        ReadOnly = False
+        SetHighlighter currentHighlighter
+    End If
+    
+End Sub
+
+Function isMouseOverCallTip() As Boolean
+    Dim p As POINTAPI
+    Dim hWin As Long
+    Dim sz As Long
+    Dim sClassName As String * 100
+    
+    On Error Resume Next
+    
+    GetCursorPos p
+    hWin = WindowFromPoint(p.X, p.Y)
+    sz = GetClassName(hWin, sClassName, 100)
+    If Left(sClassName, sz) = "CallTip" Then isMouseOverCallTip = True
+    
+End Function
+
 
 
 

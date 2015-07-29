@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{FBE17B58-A1F0-4B91-BDBD-C9AB263AC8B0}#78.0#0"; "scivb_lite.ocx"
+Object = "{2668C1EA-1D34-42E2-B89F-6B92F3FF627B}#2.0#0"; "scivb2.ocx"
 Begin VB.Form d 
    Caption         =   "Form1"
    ClientHeight    =   5490
@@ -10,14 +10,14 @@ Begin VB.Form d
    ScaleHeight     =   5490
    ScaleWidth      =   9945
    StartUpPosition =   2  'CenterScreen
-   Begin SCIVB_LITE.SciSimple SciSimple1 
-      Height          =   4155
-      Left            =   90
+   Begin sci2.SciSimple SciSimple1 
+      Height          =   4200
+      Left            =   315
       TabIndex        =   2
       Top             =   765
-      Width           =   9600
-      _ExtentX        =   16933
-      _ExtentY        =   7329
+      Width           =   9465
+      _ExtentX        =   16695
+      _ExtentY        =   7408
    End
    Begin VB.CommandButton Command2 
       Caption         =   "Command2"

@@ -1,5 +1,4 @@
 
-- click on gutter raise event
 - Highlightactive line goes blank on lose focus
 - is there a way to set a line backcolor like for breakpoint (or bold or red)
 

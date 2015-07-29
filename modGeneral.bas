@@ -125,6 +125,8 @@ Public Declare Function SendMessageStringString Lib "user32" Alias "SendMessageA
 Public Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
 Public Declare Sub MemCopy Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal length As Long)
 Public Declare Function ShellExecute& Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long)
+Public Declare Function WindowFromPoint Lib "user32" (ByVal xPoint As Long, ByVal yPoint As Long) As Long
+Public Declare Function GetClassName Lib "user32" Alias "GetClassNameA" (ByVal hwnd As Long, ByVal lpClassName As String, ByVal nMaxCount As Long) As Long
 
 Public Const SC_CP_UTF8 = 65001
 Public Const GWL_WNDPROC = (-4)
