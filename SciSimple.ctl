@@ -68,7 +68,6 @@ Public Event MouseDwellEnd(lline As Long, Position As Long)
 Public Event NewLine()
 
 
-
 Private Type RECT
    Left As Long
    Top As Long
