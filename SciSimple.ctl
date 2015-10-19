@@ -1337,10 +1337,54 @@ End Function
 
 Public Sub ShowAutoComplete(strVal As String)
   Dim i As Long
+  
+  If CanAutoCompleteCurWord(strVal) Then Exit Sub
+  
   i = ToLastSpaceCount
   SendMessageString SCI, SCI_AUTOCSHOW, i, SortString(strVal)
-  'todo: if only one match then just autocomplete that string and case correct it..
+
 End Sub
+
+'if they hit ctrl-space in the middle of a word and there is only one
+'match then this will autocomplete it and case correct it. also if the
+'cursor is at the end of the word, and it is the only partial match for
+'that first xx characters, then it will auto complete it (same behavior as vb6)
+'this is wrapped on its own for error handling..
+Private Function CanAutoCompleteCurWord(strVal As String) As Boolean
+
+  On Error GoTo hell
+    
+  Dim iStart As Long, iEnd As Long, hits As Long
+  Dim w As String, words() As String, word, matches() As String
+  Dim lineStart As Long
+  Const SCI_AUTOCCANCEL = 2101
+  
+  w = CurrentWordInternal(iStart, iEnd)
+  
+  words = Split(strVal, " ")
+  For Each word In words
+        If Len(word) > 0 Then
+            If LCase(word) = LCase(w) Or LCase(VBA.Left(word, Len(w))) = LCase(w) Then
+                  push matches, word
+            End If
+        End If
+  Next
+  
+  If Not AryIsEmpty(matches) Then
+      If UBound(matches) = 0 Then 'only one match so we will autocomplete it and case correct
+         lineStart = Me.PositionFromLine(CurrentLine)
+         Me.SelStart = lineStart + iStart - 1
+         Me.SelEnd = lineStart + iEnd
+         Me.SelText = matches(0)
+         Me.SelLength = 0
+         CanAutoCompleteCurWord = True
+         SendMessage SCI, SCI_AUTOCCANCEL, 0, 0 'hide the auto select list if already shown
+      End If                                    '(it was visible, then they hit ctrl space to complete cur selection)
+  End If
+    
+hell:
+    
+End Function
 
 Public Function CurrentWord() As String
     CurrentWord = CurrentWordInternal()
