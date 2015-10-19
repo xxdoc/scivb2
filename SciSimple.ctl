@@ -1339,6 +1339,7 @@ Public Sub ShowAutoComplete(strVal As String)
   Dim i As Long
   i = ToLastSpaceCount
   SendMessageString SCI, SCI_AUTOCSHOW, i, SortString(strVal)
+  'todo: if only one match then just autocomplete that string and case correct it..
 End Sub
 
 Public Function CurrentWord() As String
@@ -1350,6 +1351,7 @@ Private Function CurrentWordInternal(Optional iStart As Long, Optional iEnd As L
     Dim newstr As String ', iPos As Integer, iStart As Long, iEnd As Long
     Dim i As Integer
     Dim c As String
+    Dim firstCharIsDot As Boolean
     
     line = GetLineText(CurrentLine())
     X = GetCaretInLine
@@ -1360,6 +1362,7 @@ Private Function CurrentWordInternal(Optional iStart As Long, Optional iEnd As L
         c = Mid(line, i, 1)
         If c = "." And i = X Then
             'ignore the class member access marker
+            firstCharIsDot = True
         ElseIf InStr(1, CallTipWordCharacters, c) > 0 Then
             newstr = c & newstr
         Else
@@ -1371,17 +1374,21 @@ Private Function CurrentWordInternal(Optional iStart As Long, Optional iEnd As L
     
     iStart = i + 1
     
-    'maybe they clicked in the middle of a word..now scan forward to find its end.
-    For i = X + 1 To Len(line)
-        c = Mid(line, i, 1)
-        If InStr(1, CallTipWordCharacters, c) > 0 Then
-            newstr = newstr & c
-        Else
-            Exit For
-        End If
-    Next
-    
-    iEnd = i - 1
+    If firstCharIsDot Then
+        iEnd = X
+    Else
+        'maybe they clicked in the middle of a word..now scan forward to find its end.
+        For i = X + 1 To Len(line)
+            c = Mid(line, i, 1)
+            If InStr(1, CallTipWordCharacters, c) > 0 Then
+                newstr = newstr & c
+            Else
+                Exit For
+            End If
+        Next
+        
+        iEnd = i - 1
+    End If
     
     CurrentWordInternal = newstr
 
