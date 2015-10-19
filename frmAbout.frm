@@ -64,7 +64,7 @@ Begin VB.Form frmAbout
       Width           =   4335
    End
    Begin VB.Label lblURL 
-      Caption         =   "https://github.com/dzzie/scivb_lite"
+      Caption         =   "https://github.com/dzzie/scivb2"
       BeginProperty Font 
          Name            =   "Courier"
          Size            =   9.75

@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{2668C1EA-1D34-42E2-B89F-6B92F3FF627B}#2.0#0"; "scivb2.ocx"
+Object = "{2668C1EA-1D34-42E2-B89F-6B92F3FF627B}#5.0#0"; "scivb2.ocx"
 Begin VB.Form d 
    Caption         =   "Form1"
    ClientHeight    =   5490
@@ -171,7 +171,7 @@ Private Sub SciSimple1_AutoCompleteEvent(className As String)
     
     Dim prevWord As String
     prevWord = SciSimple1.PreviousWord()
-    
+
     Debug.Print "AutoCompleteEvent: ClassName: " & className & " Prevword: " & prevWord
         
     'scintinella is smart enough to autoscroll the autocomplete list to the partial match of the curWord :)

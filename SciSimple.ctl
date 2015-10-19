@@ -1342,6 +1342,10 @@ Public Sub ShowAutoComplete(strVal As String)
 End Sub
 
 Public Function CurrentWord() As String
+    CurrentWord = CurrentWordInternal()
+End Function
+
+Private Function CurrentWordInternal(Optional iStart As Long, Optional iEnd As Long) As String
     Dim line As String, X As Integer
     Dim newstr As String ', iPos As Integer, iStart As Long, iEnd As Long
     Dim i As Integer
@@ -1364,7 +1368,9 @@ Public Function CurrentWord() As String
             End If
         End If
     Next
-
+    
+    iStart = i + 1
+    
     'maybe they clicked in the middle of a word..now scan forward to find its end.
     For i = X + 1 To Len(line)
         c = Mid(line, i, 1)
@@ -1375,7 +1381,9 @@ Public Function CurrentWord() As String
         End If
     Next
     
-    CurrentWord = newstr
+    iEnd = i - 1
+    
+    CurrentWordInternal = newstr
 
 End Function
 
@@ -1385,13 +1393,16 @@ Public Function PreviousWord() As String
     Dim i As Integer
     Dim c As String
     Dim curWord As String
+    Dim iStart As Long, iEnd As Long
     
     line = GetLineText(CurrentLine())
     X = GetCaretInLine
     newstr = ""
     
-    curWord = CurrentWord()
-    X = X - Len(curWord)
+    'make sure to handle case if cursor is in middle of word, not just at end of a word..
+    curWord = CurrentWordInternal(iStart, iEnd)
+    'X = X - Len(curWord)
+    X = iStart - 1
     
     'parse the current line starting at the current cursor position and walking backwards..
     For i = X To 1 Step -1

@@ -1,9 +1,9 @@
-SciSimple = 22, 22, 769, 595, Z, 44, 44, 791, 617, C
+SciSimple = 87, 3, 1270, 704, , 44, 44, 791, 617, C
 CCmnDlg = 0, 0, 0, 0, C
-cDirectSCI = 0, 0, 0, 0, C
-CMiscSettings = 0, 0, 0, 0, C
+cDirectSCI = 123, 119, 1237, 661, C
+CMiscSettings = 132, 132, 1104, 801, 
 cSubclass = 0, 0, 0, 0, C
-frmAbout = 0, 0, 0, 0, C, 66, 66, 813, 639, C
+frmAbout = 110, 110, 1062, 779, , 66, 66, 813, 639, C
 frmReplace = 0, 0, 0, 0, C, 88, 88, 835, 661, C
 iSubclass = 0, 0, 0, 0, C
 modGeneral = 44, 44, 791, 617, 
