@@ -944,11 +944,12 @@ Property Get VisibleLines() As Long
 End Property
 
 Property Get TotalLines() As Long
-    On Error Resume Next
-    Dim X As Long
-    X = UBound(Split(Me.Text, vbCrLf))
-    If X = -1 Then X = 0
-    TotalLines = X
+'    On Error Resume Next
+'    Dim X As Long
+'    X = UBound(Split(Me.Text, vbCrLf)) 'this does not handle vblf unix line endings...
+'    If X = -1 Then X = 0
+'    TotalLines = X
+    TotalLines = DirectSCI.GetLineCount
 End Property
 
 Public Function FolderExists(path) As Boolean
@@ -993,12 +994,13 @@ Public Function GetLineText(ByVal lline As Long) As String
   Dim bByte() As Byte
   
   lLength = SendMessage(SCI, SCI_LINELENGTH, lline, 0)
-  lLength = lLength - 1 'By default this will tag on Chr(10) + chr(13)
+  'lLength = lLength - 1 'By default this will tag on Chr(10) + chr(13) was failing on lines with only 1 char..
   
   If lLength > 0 Then
     ReDim bByte(0 To lLength)
     SendMessage SCI, SCI_GETLINE, lline, VarPtr(bByte(0))
     txt = Byte2Str(bByte())
+    If Len(txt) > 1 Then If Right(txt, 1) = Chr(0) Then txt = Mid(txt, 1, Len(txt) - 1)
   Else
     txt = ""  'This line is 0 length
   End If
