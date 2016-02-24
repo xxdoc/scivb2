@@ -198,10 +198,14 @@ Dim lastIndex As Long
 Dim lastsearch As String
 Dim init As Long
 
-Private Declare Sub SetWindowPos Lib "user32" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal X As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long)
+Private Declare Sub SetWindowPos Lib "user32" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal x As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long)
 Private Const HWND_TOPMOST = -1
 Private Const HWND_NOTOPMOST = -2
 Private Const SWP_SHOWWINDOW = &H40
+
+Friend Sub SetFindText(x As String)
+    Text1 = x
+End Sub
 
 Private Sub cmdFind_Click()
     
@@ -223,10 +227,10 @@ Private Sub cmdFind_Click()
         compare = vbTextCompare
     End If
     
-    X = InStr(1, SCI.Text, lastsearch, compare)
-    If X > 0 Then
-        lastIndex = X + 2
-        SCI.SelStart = X - 1
+    x = InStr(1, SCI.Text, lastsearch, compare)
+    If x > 0 Then
+        lastIndex = x + 2
+        SCI.SelStart = x - 1
         SCI.SelLength = Len(lastsearch)
         SCI.GotoLine SCI.CurrentLine - 1
         SCI.SelectLine
@@ -266,21 +270,21 @@ Public Sub cmdFindAll_Click()
     firstLine = SCI.DirectSCI.GetFirstVisibleLine
     lastIndex = 1
     lastsearch = f
-    X = 1
+    x = 1
     
     If Len(f) = 0 Then Exit Sub
     
     LockWindowUpdate SCI.sciHWND
     editorText = SCI.Text
-    Do While X > 0
+    Do While x > 0
     
-        X = InStr(lastIndex, editorText, lastsearch, compare)
+        x = InStr(lastIndex, editorText, lastsearch, compare)
     
-        If X + 2 = lastIndex Or X < 1 Or X >= Len(editorText) Then
+        If x + 2 = lastIndex Or x < 1 Or x >= Len(editorText) Then
             Exit Do
         Else
-            lastIndex = X + 2
-            SCI.SelStart = X - 1
+            lastIndex = x + 2
+            SCI.SelStart = x - 1
             SCI.SelLength = Len(lastsearch)
             line = SCI.CurrentLine
             txt = Replace(Trim(SCI.GetLineText(line)), vbTab, Empty)
@@ -311,6 +315,7 @@ Public Sub cmdFindAll_Click()
     Me.Caption = List1.ListCount & " items found!"
     
 End Sub
+
 Private Sub cmdFindNext_Click()
     
     On Error Resume Next
@@ -339,14 +344,14 @@ Private Sub cmdFindNext_Click()
         compare = vbTextCompare
     End If
     
-    X = InStr(lastIndex, SCI.Text, lastsearch, compare)
+    x = InStr(lastIndex, SCI.Text, lastsearch, compare)
     
-    If X + 2 = lastIndex Or X < 1 Then
+    If x + 2 = lastIndex Or x < 1 Then
         MsgBox "No more matches found", vbInformation
         Exit Sub
     Else
-        lastIndex = X + 2
-        SCI.SelStart = X - 1
+        lastIndex = x + 2
+        SCI.SelStart = x - 1
         SCI.SelLength = Len(lastsearch)
         SCI.GotoLine SCI.CurrentLine
         SCI.SelectLine
@@ -401,6 +406,7 @@ End Sub
 Public Sub LaunchReplaceForm(txtObj As scisimple)
     On Error Resume Next
     Set SCI = txtObj
+    SCI.ReplaceFormActive = True
     If Len(txtObj.SelText) > 1 Then
         lblSelSize = "Selection Size: " & Len(txtObj.SelText)
         Text1 = txtObj.SelText
@@ -432,6 +438,8 @@ Private Sub Form_Unload(Cancel As Integer)
     SaveMySetting "lastFind", Text1
     SaveMySetting "lastReplace", Text2
     SaveMySetting "wholeText", IIf(Option1.Value, "1", "0")
+    On Error Resume Next
+    SCI.ReplaceFormActive = False
 End Sub
 
 Private Function ListSelIndex(lst As ListBox) As Long
@@ -470,19 +478,19 @@ Private Sub List1_Click()
     
 End Sub
 
-Private Sub List1_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+Private Sub List1_MouseDown(Button As Integer, Shift As Integer, x As Single, Y As Single)
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 
 Private Sub mnuCopyAll_Click()
     On Error Resume Next
-    Dim X As String
+    Dim x As String
     For i = 0 To List1.ListCount
-        X = X & List1.List(i) & vbCrLf
+        x = x & List1.List(i) & vbCrLf
     Next
     Clipboard.Clear
-    Clipboard.SetText X
-    MsgBox Len(X) & " bytes copied", vbInformation
+    Clipboard.SetText x
+    MsgBox Len(x) & " bytes copied", vbInformation
 End Sub
 
 Private Sub Text3_KeyPress(KeyAscii As Integer)
@@ -490,10 +498,10 @@ Private Sub Text3_KeyPress(KeyAscii As Integer)
 End Sub
 
 Private Sub Text3_KeyUp(KeyAscii As Integer, Shift As Integer)
-    Dim X As String
-    X = Hex(lastkey)
-    If Len(X) = 1 Then X = "0" & X
-    Text4 = X
+    Dim x As String
+    x = Hex(lastkey)
+    If Len(x) = 1 Then x = "0" & x
+    Text4 = x
     Text3 = Chr(lastkey)
 End Sub
 
@@ -529,7 +537,7 @@ End Function
 
 
 'this should now be unicode safe on foreign systems..
-Function unescape(X) As String '%uxxxx and %xx
+Function unescape(x) As String '%uxxxx and %xx
     
     'On Error GoTo hell
     
@@ -540,7 +548,7 @@ Function unescape(X) As String '%uxxxx and %xx
     Dim elems As Long
     Dim t
     
-    tmp = Split(X, "%")
+    tmp = Split(x, "%")
     
     s_bpush r(), tmp(0) 'any prefix before encoded part..
     
@@ -593,9 +601,9 @@ End Sub
 
 Private Sub bpush(bAry() As Byte, b As Byte) 'this modifies parent ary object
     On Error GoTo init
-    Dim X As Long
+    Dim x As Long
     
-    X = UBound(bAry) '<-throws Error If Not initalized
+    x = UBound(bAry) '<-throws Error If Not initalized
     ReDim Preserve bAry(UBound(bAry) + 1)
     bAry(UBound(bAry)) = b
     

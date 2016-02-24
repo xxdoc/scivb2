@@ -10,6 +10,14 @@ Begin VB.Form d
    ScaleHeight     =   5490
    ScaleWidth      =   9945
    StartUpPosition =   2  'CenterScreen
+   Begin VB.CommandButton Command3 
+      Caption         =   "find"
+      Height          =   510
+      Left            =   3645
+      TabIndex        =   3
+      Top             =   90
+      Width           =   1725
+   End
    Begin sci2.SciSimple SciSimple1 
       Height          =   4200
       Left            =   315
@@ -125,6 +133,10 @@ hell:
     
 End Function
 
+
+Private Sub Command3_Click()
+    SciSimple1.ShowFindReplace
+End Sub
 
 Private Sub Form_Load()
 
