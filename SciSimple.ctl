@@ -53,8 +53,8 @@ Event DebugMsg(Msg As String)
 Event KeyDown(KeyCode As Long, Shift As Long)
 Event KeyUp(KeyCode As Long, Shift As Long)
 Event key(ch As Long, modifiers As Long)
-Event MouseDown(Button As Integer, Shift As Integer, x As Long, Y As Long)
-Event MouseUp(Button As Integer, Shift As Integer, x As Long, Y As Long)
+Event MouseDown(Button As Integer, Shift As Integer, x As Long, y As Long)
+Event MouseUp(Button As Integer, Shift As Integer, x As Long, y As Long)
 Event DoubleClick()
 Event OnModified(Position As Long, modificationType As Long)
 Event LineChanged(Position As Long)
@@ -77,7 +77,7 @@ End Type
 
 Private Type POINTAPI
         x As Long
-        Y As Long
+        y As Long
 End Type
 
 Private Declare Function GetWindowRect Lib "user32" (ByVal hwnd As Long, lpRect As RECT) As Long
@@ -151,7 +151,7 @@ Private Type SCNotification
     margin As Long
     listType As Long
     x As Long
-    Y As Long
+    y As Long
 End Type
 
 Dim m_CodePage As SC_CODETYPE
@@ -2172,8 +2172,8 @@ Private Function GetWindowCursorPos(Window As Long) As POINTAPI
   GetWindowRect Window, rct
   GetWindowCursorPos.x = lP.x - rct.Left
   If GetWindowCursorPos.x < 0 Then GetWindowCursorPos.x = 0
-  GetWindowCursorPos.Y = lP.Y - rct.Top
-  If GetWindowCursorPos.Y < 0 Then GetWindowCursorPos.Y = 0
+  GetWindowCursorPos.y = lP.y - rct.Top
+  If GetWindowCursorPos.y < 0 Then GetWindowCursorPos.y = 0
 End Function
 
 Private Sub RemoveHotKeys()
@@ -2279,7 +2279,7 @@ Function isMouseOverCallTip() As Boolean
     On Error Resume Next
     
     GetCursorPos p
-    hWin = WindowFromPoint(p.x, p.Y)
+    hWin = WindowFromPoint(p.x, p.y)
     sz = GetClassName(hWin, sClassName, 100)
     If Left(sClassName, sz) = "CallTip" Then isMouseOverCallTip = True
     

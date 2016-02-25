@@ -1,6 +1,10 @@
 Attribute VB_Name = "ModSCIConst"
 Option Explicit
 
+#If 0 Then
+    Global x, y 'force lowercase so ide doesnt switch around on its own whim...
+#End If
+
 '+--------------------------------+
 '| Begin Scintilla Constants      |
 '+--------------------------------+
