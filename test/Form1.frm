@@ -10,6 +10,30 @@ Begin VB.Form d
    ScaleHeight     =   5490
    ScaleWidth      =   9945
    StartUpPosition =   2  'CenterScreen
+   Begin VB.CommandButton Command5 
+      Caption         =   "Command5"
+      Height          =   375
+      Left            =   8775
+      TabIndex        =   6
+      Top             =   135
+      Width           =   960
+   End
+   Begin VB.CommandButton Command4 
+      Caption         =   "Remove Marker"
+      Height          =   420
+      Left            =   6750
+      TabIndex        =   5
+      Top             =   135
+      Width           =   1725
+   End
+   Begin VB.TextBox Text1 
+      Height          =   375
+      Left            =   6120
+      TabIndex        =   4
+      Text            =   "Text1"
+      Top             =   180
+      Width           =   555
+   End
    Begin VB.CommandButton Command3 
       Caption         =   "find"
       Height          =   510
@@ -54,7 +78,7 @@ Attribute VB_Exposed = False
 Const SCI_SETSTYLEBITS = 2090
 Const SCLEX_ERRORLIST = 10
 Private Declare Function GetTickCount Lib "kernel32" () As Long
-
+Dim isLocked As Boolean
 
 
 
@@ -138,6 +162,16 @@ Private Sub Command3_Click()
     SciSimple1.ShowFindReplace
 End Sub
 
+Private Sub Command4_Click()
+    On Error Resume Next
+    SciSimple1.DeleteMarker CLng(Text1)
+End Sub
+
+Private Sub Command5_Click()
+    isLocked = Not isLocked
+    SciSimple1.LockEditor isLocked
+End Sub
+
 Private Sub Form_Load()
 
 '    Dim pth As String
@@ -166,8 +200,18 @@ Private Sub Form_Load()
         '.AutoCompleteOnCTRLSpace = False
         '.EnableArrowKeys
         '.SetFocusSci
+        
+        Const SC_MARK_CIRCLE = 0
+        .DirectSCI.MarkerDefine 2, SC_MARK_CIRCLE
+        .DirectSCI.MarkerSetFore 2, vbRed 'set breakpoint color
+        .DirectSCI.MarkerSetBack 2, vbRed
+         
+         If Not .LoadFile(App.Path & "\test.js") Then
+            .Text = Replace("a = 1; a++; a++; alert(a);", ";", ";" & vbCrLf)
+         End If
          
     End With
+    
     
     
 End Sub
@@ -216,6 +260,11 @@ End Sub
 
 Private Sub SciSimple1_OnError(Number As String, Description As String)
     MsgBox "SciSimple Error: " & Description
+End Sub
+
+Private Sub SciSimple1_MarginClick(lline As Long, Position As Long, margin As Long, modifiers As Long)
+    SciSimple1.SetMarker lline
+    Text1 = lline
 End Sub
 
 Private Sub SciSimple1_MouseUp(Button As Integer, Shift As Integer, x As Long, y As Long)

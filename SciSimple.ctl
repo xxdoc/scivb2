@@ -1851,7 +1851,10 @@ Private Function GetMarker(iLine As Long) As Long
 End Function
 
 Public Sub DeleteMarker(iLine As Long, Optional marknum As Long = 2)
-     SendEditor SCN_MARKERDELETE, iLine, marknum
+     Dim i As Single
+     For i = 0 To 5 'weird bug
+        SendEditor SCN_MARKERDELETE, iLine, marknum
+     Next
 End Sub
 
 Public Sub NextMarker(lline As Long, Optional marknum As Long = 2)

@@ -1,7 +1,8 @@
 
 - Highlightactive line goes blank on lose focus
 - is there a way to set a line backcolor like for breakpoint (or bold or red)
-
+- Locked should be a property not a method 
+- sometimes delete marker does not work? after running a script in duk4vb
 
 is sci.ReplaceBuggy? test
 sample input: class.method(x). previous word here should return 'method' not blank but I would have to count [] and () and support multiple embeddings
