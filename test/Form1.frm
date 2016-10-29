@@ -168,8 +168,9 @@ Private Sub Command4_Click()
 End Sub
 
 Private Sub Command5_Click()
-    isLocked = Not isLocked
-    SciSimple1.LockEditor isLocked
+    'isLocked = Not isLocked
+    'SciSimple1.LockEditor isLocked
+    SciSimple1.ShowFindReplace
 End Sub
 
 Private Sub Form_Load()

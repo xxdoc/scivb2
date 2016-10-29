@@ -526,8 +526,7 @@ Private Sub iSubclass_WndProc(ByVal bBefore As Boolean, bHandled As Boolean, lRe
                      If piGetShiftState = 4 Then 'CTRL Key
                         
                         If wParam = Asc("F") Or wParam = Asc("H") Then
-                            Dim fr As New frmReplace
-                            fr.LaunchReplaceForm Me
+                            frmReplace.LaunchReplaceForm Me
                         End If
                         
                         If Asc("G") = wParam Then
@@ -2073,7 +2072,7 @@ End Function
 
 Public Function ShowFindReplace() As Object
   On Error Resume Next
-  Load frmReplace
+  'Load frmReplace
   frmReplace.LaunchReplaceForm Me
   Set frmReplace.Icon = UserControl.Parent.Icon
   Set ShowFindReplace = frmReplace
