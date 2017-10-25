@@ -198,13 +198,49 @@ Dim lastIndex As Long
 Dim lastsearch As String
 Dim init As Long
 
-Private Declare Sub SetWindowPos Lib "user32" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal x As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long)
+Private Declare Sub SetWindowPos Lib "user32" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long)
 Private Const HWND_TOPMOST = -1
 Private Const HWND_NOTOPMOST = -2
 Private Const SWP_SHOWWINDOW = &H40
 
 Friend Sub SetFindText(x As String)
     Text1 = x
+    
+    'scan text2 (replace text) for numeric extension increment if found..
+    On Error Resume Next
+    Dim ext, a, c
+    
+    ext = ""
+    x = Trim(Text2)
+    a = Len(x)
+    
+    If a = 0 Then
+        'MsgBox "len 0"
+        Exit Sub
+    End If
+    
+    'must be at least one numeric char at end
+    If Not IsNumeric(Mid(x, a)) Then
+        'MsgBox "not numeric """ & Mid(x, a) & """"
+        Exit Sub
+    End If
+    
+    'MsgBox 2
+    For i = 0 To 10
+        c = Mid(x, a - i)
+        If Not IsNumeric(c) Then
+            Exit For
+        Else
+            ext = c
+        End If
+    Next
+    
+    'MsgBox ext
+    If Len(ext) > 0 Then
+        ext = CLng(ext)
+        Text2 = Mid(x, 1, Len(x) - Len(ext)) & ext + 1
+    End If
+    
 End Sub
 
 Private Sub cmdFind_Click()
@@ -478,7 +514,7 @@ Private Sub List1_Click()
     
 End Sub
 
-Private Sub List1_MouseDown(Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub List1_MouseDown(Button As Integer, Shift As Integer, x As Single, y As Single)
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 
